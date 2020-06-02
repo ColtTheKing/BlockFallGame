@@ -399,7 +399,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 2.1939e-41, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 0, y: 2.2847e-41, z: 0, w: 3.838627e+10}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -525,7 +525,7 @@ MonoBehaviour:
   - {fileID: 7202339086255917295, guid: 555a8f752980be144b5a91ceeefc0a56, type: 3}
   floor: {fileID: 360539802}
   DESTROY_BLOCKS_PERIOD: 20
-  SPAWN_PERIOD: 5
+  SPAWN_PERIOD: 1
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
