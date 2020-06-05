@@ -31,7 +31,7 @@ public class Player : MonoBehaviour {
 
     void HandleCollisions() {
         // Shoves player position down since their y position is in between voxels
-        Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 0.5f * Vector3.up);
+        Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
 
         for (int x = 0; x < 2; ++x) {
             for (int y = 0; y < 4; ++y) {
@@ -45,6 +45,10 @@ public class Player : MonoBehaviour {
 
                         if (Collides(transform.position, block_position, out Vector3 normal, out float intersection_depth)) {
                             transform.position += normal * intersection_depth;
+                            if (normal == Vector3.zero) {
+                                // player was improperly seperated and must be being crushed
+                                Debug.Log("Player Crushed");
+                            }
                         }
                     }
                 }

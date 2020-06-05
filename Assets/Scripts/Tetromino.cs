@@ -113,34 +113,32 @@ public class Tetromino : MonoBehaviour {
     }
 
     public void RemoveBottom() {
-        List<int> to_delete = new List<int>();
+        RemoveBlocksIf(p => p.y == 0);
+    }
 
-        // if the block is on the ground remove it from the grid and tetromino
-        for (int i = 0; i < positions.Length; i++) {
-            Debug.Log("x=" + positions[i].x + " y=" + positions[i].y + " z=" + positions[i].z);
-            if (positions[i].y == 0) {
+    public void RemoveBlocksIf(System.Predicate<Vector3Int> predicate) {
+        // index of first block to be removed
+        int first = 0;
+        while (first < positions.Length && !predicate(positions[first])) ++first;
+
+        // return early if no blocks need to be removed
+        if (first == positions.Length) return;
+
+        for (int i = first; i < positions.Length; ++i) {
+            if (predicate(positions[i])) {
+                // destroy blocks to remove
                 Game.voxel_terrain[positions[i].x, 0, positions[i].z] = Game.EMPTY;
-
                 Destroy(blocks[i]);
-                to_delete.Add(i); // sets to be deleted from the array
+            } else {
+                // move blocks to keep towards start
+                positions[first] = positions[i];
+                blocks[first] = blocks[i];
+                ++first;
             }
         }
 
-        // create new arrays with only the remaining blocks
-        GameObject[] temp_blocks = new GameObject[blocks.Length - to_delete.Count];
-        Vector3Int[] temp_positions = new Vector3Int[positions.Length - to_delete.Count];
-
-        for (int i = 0, j = 0; i < temp_blocks.Length; i++) {
-            // skip blocks that have been deleted
-            while (j < to_delete.Count && i + j == to_delete[j])
-                j++;
-
-            temp_blocks[i] = blocks[i+j];
-            temp_positions[i] = positions[i+j];
-        }
-
-        blocks = temp_blocks;
-        positions = temp_positions;
+        System.Array.Resize(ref blocks, first);
+        System.Array.Resize(ref positions, first);
     }
 
     ~Tetromino() {
