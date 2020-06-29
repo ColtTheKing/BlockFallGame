@@ -7,7 +7,23 @@ public class Player : MonoBehaviour {
     public float SPEED;
     float h = 1.5f; // box height
     float l = 0.5f; // box length and width
-    float r = 0.25f;
+    float r = 0.25f; //radius of the spheres that make up the corners of the player shape
+
+    private bool alive;
+    private Tetromino selected_block;
+    private Lava lava;
+    private Material material;
+
+    public void Start()
+    {
+        alive = true;
+        selected_block = null;
+        material = GetComponentInChildren<MeshRenderer>().material;
+    }
+
+    public void SetLava(Lava lava) {
+        this.lava = lava;
+    }
 
     public bool Collides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {
         // nearest point in player box to cube origin
@@ -29,7 +45,7 @@ public class Player : MonoBehaviour {
         return intersection_depth > 0f;
     }
 
-    void HandleCollisions() {
+    private void HandleCollisions() {
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
 
@@ -47,7 +63,7 @@ public class Player : MonoBehaviour {
                             transform.position += normal * intersection_depth;
                             if (normal == Vector3.zero) {
                                 // player was improperly seperated and must be being crushed
-                                Debug.Log("Player Crushed");
+                                CrushPlayer();
                             }
                         }
                     }
@@ -56,14 +72,37 @@ public class Player : MonoBehaviour {
         }
     }
 
-    void Update() {
+    private void KillPlayer() {
+        // Destroy the player's physical form
+        Destroy(GetComponentInChildren<CapsuleCollider>().gameObject);
+
+        // give them the newest tetromino to control and give it the player's colour
+        selected_block = Game.GrabTetromino(material);
+
+        alive = false;
+        Game.PlayerDied();
+    }
+
+    private void CrushPlayer() {
+        Debug.Log("Player Crushed");
+
+        KillPlayer();
+    }
+
+    private void BurnPlayer() {
+        Debug.Log("Player Burned");
+
+        KillPlayer();
+    }
+
+    private void AliveUpdate() {
         Vector3 pos = transform.position;
 
-        //Handles horizontal movement
+        // Handles horizontal movement
         Vector3 xzmove = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
 
-        //Normalizes horizontal movement and adds in jumping
-        //NOTE: Jumping currently can be negative to make up for out lack of gravity
+        // Normalizes horizontal movement and adds in jumping
+        // NOTE: Jumping currently can be negative to make up for out lack of gravity
         Vector3 fullmove = xzmove.normalized + new Vector3(0, Input.GetAxisRaw("Jump") * 2f - 1f, 0);
 
         Vector3 velocity = fullmove * SPEED;
@@ -72,5 +111,31 @@ public class Player : MonoBehaviour {
         transform.position = pos;
 
         HandleCollisions();
+
+        // If the lava reaches the player, burn them to death
+        if (lava.transform.position.y > transform.position.y - 1)
+        {
+            BurnPlayer();
+        }
+    }
+
+    private void DeadUpdate() {
+        Vector3 xzmove = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        float xrot = Input.GetAxisRaw("XRotation");
+        float yrot = Input.GetAxisRaw("YRotation");
+        float zrot = Input.GetAxisRaw("ZRotation");
+
+        // If the block is on the ground, give them a new one to control
+        if(!selected_block.falling) {
+            // MAY NEED TO TRACK THESE BLOCKS LATER FOR SCORING
+            selected_block = Game.GrabTetromino(material);
+        }
+    }
+
+    void Update() {
+        if (alive)
+            AliveUpdate();
+        else
+            DeadUpdate();
     }
 }
