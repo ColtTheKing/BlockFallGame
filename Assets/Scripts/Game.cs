@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour {
     public Tetromino[] PRESETS;
@@ -34,12 +35,13 @@ public class Game : MonoBehaviour {
     }
 
     public static void PlayerDied() {
-        if (++dead_players == num_players - 1)
+        if (++dead_players >= num_players - 1)
             EndGame();
     }
 
     public static void EndGame() {
         // determine the winner and send them back to the menu or something
+        SceneManager.LoadScene("Menu");
     }
 
     public void Awake() {

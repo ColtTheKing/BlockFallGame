@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 
-public class ControllerSelecteMenu : MonoBehaviour
+public class ControllerSelectMenu : MonoBehaviour
 {
     private List<int> players;
 
@@ -20,8 +21,9 @@ public class ControllerSelecteMenu : MonoBehaviour
     }
 
     void Update() {
+        //When a player presses the accept button, add their controller/keyboard
         if (GetAcceptButtons() && players.Count < 4) {
-            if (Input.GetKeyDown(KeyCode.Mouse0) && !players.Contains(0)) {
+            if (Input.GetKeyDown(KeyCode.E) && !players.Contains(0)) {
                 players.Add(0);
             }
             if (Input.GetKeyDown(KeyCode.Joystick1Button0) && !players.Contains(1)) {
@@ -51,6 +53,7 @@ public class ControllerSelecteMenu : MonoBehaviour
             UpdatePlayerTexts();
         }
 
+        //If there are enough players and the continue button is pressed, store some game info and start
         if (GetContinueButtons() && players.Count > 1) {
             GameObject gameInfoObj = GameObject.Find("GameInfo");
             if (gameInfoObj == null) {
@@ -86,6 +89,9 @@ public class ControllerSelecteMenu : MonoBehaviour
                         break;
                 }
             }
+
+            //Load game scene
+            SceneManager.LoadScene("Game");
         }
     }
 
