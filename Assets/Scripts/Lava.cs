@@ -9,14 +9,12 @@ public class Lava : MonoBehaviour
     public float maxHeight;
 
     // Start is called before the first frame update
-    void Start()
-    {
+    void Start() {
         
     }
 
     // Update is called once per frame
-    void Update()
-    {
+    void Update() {
         if (transform.position.y < maxHeight) {
             if (riseDelay > 0) {
                 riseDelay -= Time.deltaTime;

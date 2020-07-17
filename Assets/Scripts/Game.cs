@@ -1,11 +1,15 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour {
     public Tetromino[] PRESETS;
     public GameObject floor;
     public int DESTROY_BLOCKS_PERIOD;
     public int SPAWN_PERIOD;
+    public int DESTROY_BLOCKS_DELAY;
+    public Lava lava;
+    public Player[] players;
 
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
@@ -15,6 +19,8 @@ public class Game : MonoBehaviour {
 
     // if a tetromino is falling this is the difference between its stored y position and its real y position
     public static float fall_offset = 0f;
+    public static int num_players = 4;
+    public static int dead_players = 0;
 
     const float TICK_SIZE = 0.5f;
     float time_since_last_tick = 0.0f;
@@ -26,6 +32,30 @@ public class Game : MonoBehaviour {
         if (p.y < 0 || p.y >= HEIGHT) return -1;
         if (p.z < 0 || p.z >= WIDTH) return -1;
         return voxel_terrain[p.x, p.y, p.z];
+    }
+
+    public static void PlayerDied() {
+        if (++dead_players >= num_players - 1)
+            EndGame();
+    }
+
+    public static void EndGame() {
+        // determine the winner and send them back to the menu or something
+        SceneManager.LoadScene("Menu");
+    }
+
+    public void Awake() {
+        GameObject infoObj = GameObject.Find("GameInfo");
+        if (infoObj != null) {
+            GameInfo info = infoObj.GetComponent<GameInfo>();
+            //numPlayers = info.numPlayers;
+            //spawnPlayers(info);
+        }
+        
+        ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
+        num_players = players.Length;
+
+        Player.lava = lava;
     }
 
     void Start() {
@@ -65,6 +95,19 @@ public class Game : MonoBehaviour {
                 tetrominos.RemoveAt(i--);
             }
         }
+    }
+
+    //Grab the newest block that isn't already in use
+    public static Tetromino GrabTetromino(Material material) {
+        // add colour to the blocks based on the player (make this a glow or something later?)
+        Tetromino t = tetrominos[tetrominos.Count - 1];
+
+        MeshRenderer[] blocks = t.GetComponentsInChildren<MeshRenderer>();
+        for (int i = 0; i < blocks.Length; i++) {
+            blocks[i].material = material;
+        }
+
+        return t;
     }
 
     private void UpdateLogic() {
