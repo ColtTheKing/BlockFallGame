@@ -45,6 +45,13 @@ public class Game : MonoBehaviour {
     }
 
     public void Awake() {
+        GameObject infoObj = GameObject.Find("GameInfo");
+        if (infoObj != null) {
+            GameInfo info = infoObj.GetComponent<GameInfo>();
+            //numPlayers = info.numPlayers;
+            //spawnPlayers(info);
+        }
+        
         ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
         num_players = players.Length;
 
