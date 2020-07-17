@@ -23,33 +23,15 @@ public class ControllerSelectMenu : MonoBehaviour
     void Update() {
         //When a player presses the accept button, add their controller/keyboard
         if (GetAcceptButtons() && players.Count < 4) {
-            if (Input.GetKeyDown(KeyCode.E) && !players.Contains(0)) {
-                players.Add(0);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick1Button0) && !players.Contains(1)) {
-                players.Add(1);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick2Button0) && !players.Contains(2)) {
-                players.Add(2);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick3Button0) && !players.Contains(3)) {
-                players.Add(3);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick4Button0) && !players.Contains(4)) {
-                players.Add(4);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick5Button0) && !players.Contains(5)) {
-                players.Add(5);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick6Button0) && !players.Contains(6)) {
-                players.Add(6);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick7Button0) && !players.Contains(7)) {
-                players.Add(7);
-            }
-            if (Input.GetKeyDown(KeyCode.Joystick8Button0) && !players.Contains(8)) {
-                players.Add(8);
-            }
+            if (Input.GetKeyDown(KeyCode.E) && !players.Contains(0)) { players.Add(0); }
+            if (Input.GetKeyDown(KeyCode.Joystick1Button0) && !players.Contains(1)) { players.Add(1); }
+            if (Input.GetKeyDown(KeyCode.Joystick2Button0) && !players.Contains(2)) { players.Add(2); }
+            if (Input.GetKeyDown(KeyCode.Joystick3Button0) && !players.Contains(3)) { players.Add(3); }
+            if (Input.GetKeyDown(KeyCode.Joystick4Button0) && !players.Contains(4)) { players.Add(4); }
+            if (Input.GetKeyDown(KeyCode.Joystick5Button0) && !players.Contains(5)) { players.Add(5); }
+            if (Input.GetKeyDown(KeyCode.Joystick6Button0) && !players.Contains(6)) { players.Add(6); }
+            if (Input.GetKeyDown(KeyCode.Joystick7Button0) && !players.Contains(7)) { players.Add(7); }
+            if (Input.GetKeyDown(KeyCode.Joystick8Button0) && !players.Contains(8)) { players.Add(8); }
             UpdatePlayerTexts();
         }
 

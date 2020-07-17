@@ -11,7 +11,7 @@ public class Player : MonoBehaviour {
 
     private bool alive;
     private Tetromino selected_block;
-    private Lava lava;
+    public static Lava lava;
     private Material material;
 
     public void Start()
@@ -19,10 +19,6 @@ public class Player : MonoBehaviour {
         alive = true;
         selected_block = null;
         material = GetComponentInChildren<MeshRenderer>().material;
-    }
-
-    public void SetLava(Lava lava) {
-        this.lava = lava;
     }
 
     public bool Collides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {

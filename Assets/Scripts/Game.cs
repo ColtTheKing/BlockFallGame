@@ -55,9 +55,7 @@ public class Game : MonoBehaviour {
         ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
         num_players = players.Length;
 
-        foreach (Player p in players) {
-            p.SetLava(lava);
-        }
+        Player.lava = lava;
     }
 
     void Start() {
