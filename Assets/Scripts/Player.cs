@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour {
     public float SPEED;
@@ -14,11 +15,23 @@ public class Player : MonoBehaviour {
     public static Lava lava;
     private Material material;
 
+    private InputController controls;
+    void OnEnable() => controls.Enable();
+    void OnDisable() => controls.Disable();
+    public void Awake() {
+        controls = new InputController();
+        controls.Menu.Confirm.performed += context => SetInputDevice(context.control.device);
+    }
+
     public void Start()
     {
         alive = true;
         selected_block = null;
         material = GetComponentInChildren<MeshRenderer>().material;
+    }
+
+    public void SetInputDevice(InputDevice device) {
+        controls.devices = new InputDevice[] { device };
     }
 
     public bool Collides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {
@@ -95,11 +108,12 @@ public class Player : MonoBehaviour {
         Vector3 pos = transform.position;
 
         // Handles horizontal movement
-        Vector3 xzmove = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        Vector2 xzmove = controls.Player.Movement.ReadValue<Vector2>();
+        float ymove = controls.Player.Jump.ReadValue<float>() * 2 - 1;
 
         // Normalizes horizontal movement and adds in jumping
         // NOTE: Jumping currently can be negative to make up for out lack of gravity
-        Vector3 fullmove = xzmove.normalized + new Vector3(0, Input.GetAxisRaw("Jump") * 2f - 1f, 0);
+        Vector3 fullmove = new Vector3(xzmove.x, ymove, xzmove.y);
 
         Vector3 velocity = fullmove * SPEED;
         pos += velocity * Time.deltaTime;
@@ -109,14 +123,14 @@ public class Player : MonoBehaviour {
         HandleCollisions();
 
         // If the lava reaches the player, burn them to death
-        if (lava.transform.position.y > transform.position.y - 1)
+        if (lava.transform.position.y > transform.position.y - (0.5 * h + r))
         {
             BurnPlayer();
         }
     }
 
     private void DeadUpdate() {
-        Vector3 xzmove = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        Vector2 xzmove = controls.Player.Movement.ReadValue<Vector2>();
         float xrot = Input.GetAxisRaw("XRotation");
         float yrot = Input.GetAxisRaw("YRotation");
         float zrot = Input.GetAxisRaw("ZRotation");

@@ -4,12 +4,13 @@ using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour {
     public Tetromino[] PRESETS;
+    public GameObject[] PLAYER_PREFABS;
     public GameObject floor;
     public int DESTROY_BLOCKS_PERIOD;
     public int SPAWN_PERIOD;
     public int DESTROY_BLOCKS_DELAY;
     public Lava lava;
-    public Player[] players;
+    public List<Player> players;
 
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
@@ -45,15 +46,31 @@ public class Game : MonoBehaviour {
     }
 
     public void Awake() {
+        players = new List<Player>();
         GameObject infoObj = GameObject.Find("GameInfo");
         if (infoObj != null) {
             GameInfo info = infoObj.GetComponent<GameInfo>();
-            //numPlayers = info.numPlayers;
-            //spawnPlayers(info);
+            for (int i = 0; i < info.numPlayers; i++) {
+                Vector3 spawnPosition = new Vector3(
+                    (WIDTH - 1) * (i % 2),
+                    0.5f,
+                    (WIDTH - 1) * (i / 2 % 2)
+                );
+                GameObject gameObject = Instantiate(PLAYER_PREFABS[i], spawnPosition, Quaternion.identity);
+                Player player = gameObject.GetComponent<Player>();
+                player.SetInputDevice(info.players[i]);
+                players.Add(player);
+            }
+        } else {
+            // should only execute when running the game scene manually from the editor.
+            Vector3 spawnPosition = new Vector3(0.0f, 0.5f, 0.0f);
+            GameObject gameObject = Instantiate(PLAYER_PREFABS[0], spawnPosition, Quaternion.identity);
+            Player player = gameObject.GetComponent<Player>();
+            players.Add(player);
         }
-        
+
         ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
-        num_players = players.Length;
+        num_players = players.Count;
 
         Player.lava = lava;
     }
