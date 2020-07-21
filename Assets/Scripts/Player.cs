@@ -20,7 +20,6 @@ public class Player : MonoBehaviour {
     void OnDisable() => controls.Disable();
     public void Awake() {
         controls = new InputController();
-        controls.Menu.Confirm.performed += context => SetInputDevice(context.control.device);
     }
 
     public void Start()
