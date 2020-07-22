@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class GameInfo : MonoBehaviour {
-    public int numPlayers;
     public List<InputDevice> players;
-    public int score;
-    public bool gameOver;
+    public List<int> scores;
+
     private void Awake() {
         DontDestroyOnLoad(gameObject);
     }

@@ -10,20 +10,19 @@ public class Game : MonoBehaviour {
     public int SPAWN_PERIOD;
     public int DESTROY_BLOCKS_DELAY;
     public Lava lava;
-    public List<Player> players;
 
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
     public static readonly int EMPTY = -1;
-    public static List<Tetromino> tetrominos = new List<Tetromino>();
+    public static List<Tetromino> tetrominos;
+    public static List<Player> players;
     public static int[,,] voxel_terrain = new int[WIDTH, HEIGHT, WIDTH];
 
     // if a tetromino is falling this is the difference between its stored y position and its real y position
-    public static float fall_offset = 0f;
-    public static int num_players = 4;
-    public static int dead_players = 0;
+    public static float fall_offset;
+    public static int dead_players;
 
-    const float TICK_SIZE = 0.5f;
+    float TICK_SIZE = 0.5f;
     float time_since_last_tick = 0.0f;
     int ticks_to_spawn = 0;
     int ticks_to_destroy_blocks = 0;
@@ -36,7 +35,7 @@ public class Game : MonoBehaviour {
     }
 
     public static void PlayerDied() {
-        if (++dead_players >= num_players - 1)
+        if (++dead_players >= players.Count - 1)
             EndGame();
     }
 
@@ -47,10 +46,12 @@ public class Game : MonoBehaviour {
 
     public void Awake() {
         players = new List<Player>();
+        tetrominos = new List<Tetromino>();
+
         GameObject infoObj = GameObject.Find("GameInfo");
         if (infoObj != null) {
             GameInfo info = infoObj.GetComponent<GameInfo>();
-            for (int i = 0; i < info.numPlayers; i++) {
+            for (int i = 0; i < info.players.Count; i++) {
                 Vector3 spawnPosition = new Vector3(
                     (WIDTH - 1) * (i % 2),
                     0.5f,
@@ -69,8 +70,9 @@ public class Game : MonoBehaviour {
             players.Add(player);
         }
 
+        fall_offset = 0.0f;
+        dead_players = 0;
         ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
-        num_players = players.Count;
 
         Player.lava = lava;
     }

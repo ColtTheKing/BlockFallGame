@@ -47,10 +47,7 @@ public class ControllerSelectMenu : MonoBehaviour {
             }
 
             GameInfo info = gameInfoObj.GetComponent<GameInfo>();
-            info.numPlayers = players.Count;
             info.players = players;
-            info.score = 0;
-            info.gameOver = false;
 
             SceneManager.LoadScene("Game");
         }
