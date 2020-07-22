@@ -515,27 +515,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e18b1e46eb524b44c9a41fc5be9b6d78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PRESETS:
-  - {fileID: 7202339086255917295, guid: f5b15f6ac90edad44af6d98dc86cc213, type: 3}
-  - {fileID: 7202339086255917295, guid: 23b69710ca714cb479f7cdcb0157c9b8, type: 3}
-  - {fileID: 7202339086255917295, guid: 9413b0fc31253aa4f879fbabb610b82e, type: 3}
-  - {fileID: 7202339086255917295, guid: 731cc50f524fd224e9457c4292effef7, type: 3}
-  - {fileID: 7202339086255917295, guid: c87f217e74977bc4c8be1d44870efe6c, type: 3}
-  - {fileID: 7202339086255917295, guid: c9245ee27fccd6949ae70e9275ea1873, type: 3}
-  - {fileID: 7202339086255917295, guid: 555a8f752980be144b5a91ceeefc0a56, type: 3}
-  PLAYER_PREFABS:
-  - {fileID: 6861282431717548159, guid: 1e90acd88a7af4b43802ebf2c8169cdd, type: 3}
-  - {fileID: 8665275450402857013, guid: 98d1578402fbbb04087806f281526e18, type: 3}
-  - {fileID: 7302391920788705067, guid: e81e0cd614d4b394788bb0879cdbc0f8, type: 3}
-  - {fileID: 1358656658629364246, guid: c831b68ef61783b4b8c2c1b635f60308, type: 3}
+  tetrominoPresets: []
+  playerPrefabs: []
   floor: {fileID: 360539802}
-  DESTROY_BLOCKS_PERIOD: 30
-  SPAWN_PERIOD: 1
-  DESTROY_BLOCKS_DELAY: 60
   lava: {fileID: 634061351}
-  playerPrefab: {fileID: 6861282431717548159, guid: 1e90acd88a7af4b43802ebf2c8169cdd,
-    type: 3}
-  players: []
+  destroyBlockDelay: 60
+  destroyBlockPeriod: 30
+  spawnPeriod: 0
+  tickSize: 0.5
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0

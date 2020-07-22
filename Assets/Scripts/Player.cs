@@ -12,7 +12,6 @@ public class Player : MonoBehaviour {
 
     private bool alive;
     private Tetromino selected_block;
-    public static Lava lava;
     private Material material;
 
     private InputController controls;
@@ -22,8 +21,7 @@ public class Player : MonoBehaviour {
         controls = new InputController();
     }
 
-    public void Start()
-    {
+    public void Start() {
         alive = true;
         selected_block = null;
         material = GetComponentInChildren<MeshRenderer>().material;
@@ -122,8 +120,7 @@ public class Player : MonoBehaviour {
         HandleCollisions();
 
         // If the lava reaches the player, burn them to death
-        if (lava.transform.position.y > transform.position.y - (0.5 * h + r))
-        {
+        if (Game.lava.transform.position.y > transform.position.y - (0.5 * h + r)) {
             BurnPlayer();
         }
     }
@@ -135,7 +132,7 @@ public class Player : MonoBehaviour {
         float zrot = Input.GetAxisRaw("ZRotation");
 
         // If the block is on the ground, give them a new one to control
-        if(!selected_block.falling) {
+        if (!selected_block.falling) {
             // MAY NEED TO TRACK THESE BLOCKS LATER FOR SCORING
             selected_block = Game.GrabTetromino(material);
         }

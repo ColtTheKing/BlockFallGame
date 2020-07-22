@@ -3,26 +3,29 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Game : MonoBehaviour {
-    public Tetromino[] PRESETS;
-    public GameObject[] PLAYER_PREFABS;
-    public GameObject floor;
-    public int DESTROY_BLOCKS_PERIOD;
-    public int SPAWN_PERIOD;
-    public int DESTROY_BLOCKS_DELAY;
-    public Lava lava;
+    [Header("Presets")]
+    public Tetromino[] tetrominoPresets;
+    public GameObject[] playerPrefabs;
+    [Header("GameObjects")]
+    public GameObject floorGameObject;
+    public GameObject lavaGameObject;
+    [Header("Settings")]
+    public float tickSize;
+    public int tetrominoSpawnPeriod;
+    public int destroyBlockDelay;
+    public int destroyBlockPeriod;
 
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
     public static readonly int EMPTY = -1;
     public static List<Tetromino> tetrominos;
     public static List<Player> players;
+    public static Lava lava;
     public static int[,,] voxel_terrain = new int[WIDTH, HEIGHT, WIDTH];
-
     // if a tetromino is falling this is the difference between its stored y position and its real y position
     public static float fall_offset;
     public static int dead_players;
 
-    float TICK_SIZE = 0.5f;
     float time_since_last_tick = 0.0f;
     int ticks_to_spawn = 0;
     int ticks_to_destroy_blocks = 0;
@@ -47,6 +50,7 @@ public class Game : MonoBehaviour {
     public void Awake() {
         players = new List<Player>();
         tetrominos = new List<Tetromino>();
+        lava = lavaGameObject.GetComponent<Lava>();
 
         GameObject infoObj = GameObject.Find("GameInfo");
         if (infoObj != null) {
@@ -57,7 +61,7 @@ public class Game : MonoBehaviour {
                     0.5f,
                     (WIDTH - 1) * (i / 2 % 2)
                 );
-                GameObject gameObject = Instantiate(PLAYER_PREFABS[i], spawnPosition, Quaternion.identity);
+                GameObject gameObject = Instantiate(playerPrefabs[i], spawnPosition, Quaternion.identity);
                 Player player = gameObject.GetComponent<Player>();
                 player.SetInputDevice(info.players[i]);
                 players.Add(player);
@@ -65,21 +69,19 @@ public class Game : MonoBehaviour {
         } else {
             // should only execute when running the game scene manually from the editor.
             Vector3 spawnPosition = new Vector3(0.0f, 0.5f, 0.0f);
-            GameObject gameObject = Instantiate(PLAYER_PREFABS[0], spawnPosition, Quaternion.identity);
+            GameObject gameObject = Instantiate(playerPrefabs[0], spawnPosition, Quaternion.identity);
             Player player = gameObject.GetComponent<Player>();
             players.Add(player);
         }
 
         fall_offset = 0.0f;
         dead_players = 0;
-        ticks_to_destroy_blocks = DESTROY_BLOCKS_DELAY;
-
-        Player.lava = lava;
+        ticks_to_destroy_blocks = destroyBlockDelay;
     }
 
     void Start() {
-        floor.transform.position = new Vector3(WIDTH * 0.5f - 0.5f, -0.5f, WIDTH * 0.5f - 0.5f);
-        floor.transform.localScale = new Vector3(WIDTH, HEIGHT, WIDTH);
+        floorGameObject.transform.position = new Vector3(WIDTH * 0.5f - 0.5f, -0.5f, WIDTH * 0.5f - 0.5f);
+        floorGameObject.transform.localScale = new Vector3(WIDTH, HEIGHT, WIDTH);
 
         for (int x = 0; x < WIDTH; ++x) {
             for (int y = 0; y < HEIGHT; ++y) {
@@ -132,16 +134,16 @@ public class Game : MonoBehaviour {
     private void UpdateLogic() {
         // handle tetromino spawns
         if (ticks_to_spawn-- == 0) {
-            ticks_to_spawn = SPAWN_PERIOD;
+            ticks_to_spawn = tetrominoSpawnPeriod;
 
-            Tetromino tetromino = Instantiate(PRESETS[Random.Range(0, PRESETS.Length)]);
+            Tetromino tetromino = Instantiate(tetrominoPresets[Random.Range(0, tetrominoPresets.Length)]);
             TetrominoFactory.FromPreset(tetromino);
             tetrominos.Add(tetromino);
         }
 
         // handle mass tetromino destruction
         if (ticks_to_destroy_blocks-- == 0) {
-            ticks_to_destroy_blocks = DESTROY_BLOCKS_PERIOD;
+            ticks_to_destroy_blocks = destroyBlockPeriod;
 
             DestroyBottomLayer();
         }
@@ -167,12 +169,12 @@ public class Game : MonoBehaviour {
 
     void Update() {
         time_since_last_tick += Time.deltaTime;
-        while (time_since_last_tick > TICK_SIZE) {
-            time_since_last_tick -= TICK_SIZE;
+        while (time_since_last_tick > tickSize) {
+            time_since_last_tick -= tickSize;
             UpdateLogic();
         }
 
-        fall_offset = 1f - time_since_last_tick / TICK_SIZE;
+        fall_offset = 1f - time_since_last_tick / tickSize;
         UpdateVisuals();
     }
 }
