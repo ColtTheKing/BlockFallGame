@@ -19,15 +19,21 @@ public class TetrominoFactory {
         return min;
     }
 
+    //Takes a newly spawned tetromino and randomizes its parameters in the game world
     public static void FromPreset(Tetromino tetromino) {
         // randomly shuffles the axis of each block position
         for (int i = 0; i < 2; ++i) {
             int r = Random.Range(i, 3);
+            // Block positions
             for (int j = 0; j < tetromino.positions.Length; ++j) {
                 int temp = tetromino.positions[j][r];
                 tetromino.positions[j][r] = tetromino.positions[j][i];
                 tetromino.positions[j][i] = temp;
             }
+            // Pivot position
+            float tempf = tetromino.rotation_point[r];
+            tetromino.rotation_point[r] = tetromino.rotation_point[i];
+            tetromino.rotation_point[i] = tempf;
         }
 
         int max_x = Max(tetromino.positions, 0);
@@ -46,6 +52,7 @@ public class TetrominoFactory {
         bool mirror_y = Random.value < 0.5f;
         bool mirror_z = Random.value < 0.5f;
 
+        // Block positions
         for (int i = 0; i < tetromino.positions.Length; ++i) {
             Vector3Int p = tetromino.positions[i];
             if (mirror_x) p.x = max_x - p.x;
@@ -55,13 +62,23 @@ public class TetrominoFactory {
 
             tetromino.positions[i] = p;
         }
+
+        //Pivot position
+        Vector3 pf = tetromino.rotation_point;
+        if (mirror_x) pf.x = max_x - pf.x;
+        if (mirror_y) pf.y = max_y - pf.y;
+        if (mirror_z) pf.z = max_z - pf.z;
+        pf += offset;
+
+        tetromino.rotation_point = pf;
     }
 }
 
 public class Tetromino : MonoBehaviour {
     public GameObject[] blocks;
     public Vector3Int[] positions;
-    public bool falling;
+    public Vector3 rotation_point;
+    public bool falling, controlled;
 
     bool ShouldFall(int index) {
         // can't fall if supported from below by another block
@@ -98,6 +115,7 @@ public class Tetromino : MonoBehaviour {
             for (int i = 0; i < positions.Length; ++i) {
                 --positions[i].y;
             }
+            --rotation_point.y;
             WriteVoxels(index);
         }
     }
