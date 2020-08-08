@@ -11,7 +11,8 @@ public class Player : MonoBehaviour {
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
     private bool alive;
-    private Tetromino selected_block;
+    private Tetromino selected_tetromino;
+    private int selected_tetromino_id;
     private Material material;
 
     private InputController controls;
@@ -23,7 +24,8 @@ public class Player : MonoBehaviour {
 
     public void Start() {
         alive = true;
-        selected_block = null;
+        selected_tetromino = null;
+        selected_tetromino_id = -1;
         material = GetComponentInChildren<MeshRenderer>().material;
     }
 
@@ -31,7 +33,7 @@ public class Player : MonoBehaviour {
         controls.devices = new InputDevice[] { device };
     }
 
-    public bool Collides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {
+    public bool PlayerCollides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {
         // nearest point in player box to cube origin
         Vector3 p1 = new Vector3(Mathf.Clamp(cube.x, player.x - l * 0.5f, player.x + l * 0.5f),
                                 Mathf.Clamp(cube.y, player.y - h * 0.5f, player.y + h * 0.5f),
@@ -65,7 +67,7 @@ public class Player : MonoBehaviour {
                         float fall_offset = Game.tetrominos[tetromino_id].falling ? Game.fall_offset : 0f;
                         Vector3 block_position = new Vector3(p.x, p.y + fall_offset, p.z);
 
-                        if (Collides(transform.position, block_position, out Vector3 normal, out float intersection_depth)) {
+                        if (PlayerCollides(transform.position, block_position, out Vector3 normal, out float intersection_depth)) {
                             transform.position += normal * intersection_depth;
                             if (normal == Vector3.zero) {
                                 // player was improperly seperated and must be being crushed
@@ -78,24 +80,32 @@ public class Player : MonoBehaviour {
         }
     }
 
-    private void KillPlayer() {
-        // Destroy the player's physical form
-        Destroy(GetComponentInChildren<CapsuleCollider>().gameObject);
+    private void ResurrectPlayer() {
+        // GetComponentInChildren<CapsuleCollider>().gameObject.SetActive(true);
+        // Move to spawn position
+    }
 
-        // give them the newest tetromino to control and give it the player's colour
-        selected_block = Game.GrabTetromino(material);
+    private void KillPlayer() {
+        // Disable the player's physical form
+        GetComponentInChildren<CapsuleCollider>().gameObject.SetActive(false);
 
         alive = false;
         Game.PlayerDied();
     }
 
     private void CrushPlayer() {
+        if (!alive)
+            return;
+
         Debug.Log("Player Crushed");
 
         KillPlayer();
     }
 
     private void BurnPlayer() {
+        if (!alive)
+            return;
+
         Debug.Log("Player Burned");
 
         KillPlayer();
@@ -126,15 +136,35 @@ public class Player : MonoBehaviour {
     }
 
     private void DeadUpdate() {
-        Vector2 xzmove = controls.Player.Movement.ReadValue<Vector2>();
-        float xrot = Input.GetAxisRaw("XRotation");
-        float yrot = Input.GetAxisRaw("YRotation");
-        float zrot = Input.GetAxisRaw("ZRotation");
+        // If the block is on the ground, give up control of that block
+        if (selected_tetromino != null && !selected_tetromino.falling) {
+            // WILL NEED TO TRACK THESE BLOCKS LATER FOR SCORING
+            selected_tetromino = null;
+            selected_tetromino_id = -1;
+        }
 
-        // If the block is on the ground, give them a new one to control
-        if (!selected_block.falling) {
-            // MAY NEED TO TRACK THESE BLOCKS LATER FOR SCORING
-            selected_block = Game.GrabTetromino(material);
+        // If the player doesn't have a block, try to find them one to control
+        if (selected_tetromino == null) {
+            selected_tetromino_id = Game.GrabTetromino(material, out selected_tetromino);
+        }
+
+        // If the player has a block, control it based player input
+        if (selected_tetromino != null) {
+            // Move the block along the x and z axes
+            if (controls.Player.BlockMove.triggered)
+                selected_tetromino.XZMove(controls.Player.BlockMove.ReadValue<Vector2>());
+
+            // Rotate the block around the x axis
+            if (controls.Player.XRotate.triggered)
+                selected_tetromino.Rotate(0, controls.Player.XRotate.ReadValue<float>());
+
+            // Rotate the block around the y axis
+            if (controls.Player.YRotate.triggered)
+                selected_tetromino.Rotate(1, controls.Player.XRotate.ReadValue<float>());
+
+            // Rotate the block around the z axis
+            if (controls.Player.ZRotate.triggered)
+                selected_tetromino.Rotate(2, controls.Player.XRotate.ReadValue<float>());
         }
     }
 

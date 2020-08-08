@@ -39,7 +39,8 @@ public class Game : MonoBehaviour {
 
     public static void PlayerDied() {
         if (++dead_players >= players.Count - 1)
-            EndGame();
+            //EndGame();
+            ;
     }
 
     public static void EndGame() {
@@ -118,17 +119,25 @@ public class Game : MonoBehaviour {
         }
     }
 
-    //Grab the newest block that isn't already in use
-    public static Tetromino GrabTetromino(Material material) {
-        // add colour to the blocks based on the player (make this a glow or something later?)
-        Tetromino t = tetrominos[tetrominos.Count - 1];
+    //Grab the newest tetromino that isn't already taken or on the ground
+    public static int GrabTetromino(Material material, out Tetromino tetromino) {
+        for (int i = tetrominos.Count - 1; i > 0; i--) {
+            if (!tetrominos[i].controlled && tetrominos[i].falling) {
+                tetromino = tetrominos[i];
+                tetromino.controlled = true;
 
-        MeshRenderer[] blocks = t.GetComponentsInChildren<MeshRenderer>();
-        for (int i = 0; i < blocks.Length; i++) {
-            blocks[i].material = material;
+                // add colour to the blocks based on the player (make this a glow or something later?)
+                MeshRenderer[] blocks = tetromino.GetComponentsInChildren<MeshRenderer>();
+                for (int j = 0; j < blocks.Length; j++) {
+                    blocks[j].material = material;
+                }
+
+                return i;
+            }
         }
 
-        return t;
+        tetromino = null;
+        return -1;
     }
 
     private void UpdateLogic() {
@@ -137,7 +146,7 @@ public class Game : MonoBehaviour {
             ticks_to_spawn = tetrominoSpawnPeriod;
 
             Tetromino tetromino = Instantiate(tetrominoPresets[Random.Range(0, tetrominoPresets.Length)]);
-            TetrominoFactory.FromPreset(tetromino);
+            TetrominoFactory.FromPreset(tetromino, tetrominos.Count);
             tetrominos.Add(tetromino);
         }
 
@@ -146,19 +155,22 @@ public class Game : MonoBehaviour {
             ticks_to_destroy_blocks = destroyBlockPeriod;
 
             DestroyBottomLayer();
+
+            // Update the ids in case the array indices shifted due to a deletion
+            for (int i = 0; i < tetrominos.Count; ++i) {
+                tetrominos[i].UpdateID(i);
+            }
         }
 
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].WriteVoxels(i);
+            tetrominos[i].WriteVoxels();
         }
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].UpdateFalling(i);
+            tetrominos[i].UpdateFalling();
         }
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].Fall(i);
+            tetrominos[i].Fall();
         }
-
-        // do stuff that would change indices here
     }
 
     private void UpdateVisuals() {

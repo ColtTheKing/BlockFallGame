@@ -19,15 +19,21 @@ public class TetrominoFactory {
         return min;
     }
 
-    public static void FromPreset(Tetromino tetromino) {
+    //Takes a newly spawned tetromino and randomizes its parameters in the game world
+    public static void FromPreset(Tetromino tetromino, int id) {
         // randomly shuffles the axis of each block position
         for (int i = 0; i < 2; ++i) {
             int r = Random.Range(i, 3);
+            // Block positions
             for (int j = 0; j < tetromino.positions.Length; ++j) {
                 int temp = tetromino.positions[j][r];
                 tetromino.positions[j][r] = tetromino.positions[j][i];
                 tetromino.positions[j][i] = temp;
             }
+            // Pivot position
+            float tempf = tetromino.pivot[r];
+            tetromino.pivot[r] = tetromino.pivot[i];
+            tetromino.pivot[i] = tempf;
         }
 
         int max_x = Max(tetromino.positions, 0);
@@ -46,6 +52,7 @@ public class TetrominoFactory {
         bool mirror_y = Random.value < 0.5f;
         bool mirror_z = Random.value < 0.5f;
 
+        // Block positions
         for (int i = 0; i < tetromino.positions.Length; ++i) {
             Vector3Int p = tetromino.positions[i];
             if (mirror_x) p.x = max_x - p.x;
@@ -55,21 +62,71 @@ public class TetrominoFactory {
 
             tetromino.positions[i] = p;
         }
+
+        //Pivot position
+        Vector3 pf = tetromino.pivot;
+        if (mirror_x) pf.x = max_x - pf.x;
+        if (mirror_y) pf.y = max_y - pf.y;
+        if (mirror_z) pf.z = max_z - pf.z;
+        pf += offset;
+
+        tetromino.pivot = pf;
+
+        tetromino.UpdateID(id);
     }
 }
 
 public class Tetromino : MonoBehaviour {
     public GameObject[] blocks;
     public Vector3Int[] positions;
-    public bool falling;
+    public Vector3 pivot;
+    public bool falling, controlled;
+    private int id;
 
-    bool ShouldFall(int index) {
+    // Takes point v and rotates it arounds the corresponding axis (0,1,2 correspond to x,y,z)
+    public static Vector3 RotatePoint90(Vector3 v, int axis, bool clockwise) {
+        int sign = clockwise ? 1 : -1;
+        int A = (++axis < 3) ? axis : axis - 3;
+        int B = (++axis < 3) ? axis : axis - 3;
+
+        float temp = v[A];
+        v[A] = v[B] * sign;
+        v[B] = -temp * sign;
+
+        return v;
+    }
+
+    // Determines whether or not a block overlaps with any other block in the world
+    public static bool BlockCollides(Vector3Int[] tetromino, int tetromino_id) {
+        for (int i = 0; i < tetromino.Length; i++) {
+            // If a position is not empty or a block from the current tetromino, it must be colliding
+            int id_at_position = Game.Terrain(tetromino[i]);
+
+            // Check at the terrain position of the block
+            if (id_at_position != -1 && id_at_position != tetromino_id)
+                return true;
+
+            // Check at the position above if in between layers
+            if (Game.fall_offset == 1f || Game.fall_offset == 0f) {
+                id_at_position = Game.Terrain(tetromino[i] + new Vector3Int(0, 1, 0));
+
+                // For this layer, don't collide with falling blocks since they will not be overlapping
+                if (id_at_position != -1 && id_at_position != tetromino_id
+                    && !Game.tetrominos[id_at_position].falling)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool ShouldFall() {
         // can't fall if supported from below by another block
         foreach (Vector3Int p in positions) {
             if (p.y == 0) return false;
 
             int potential_support = Game.voxel_terrain[p.x, p.y - 1, p.z];
-            if (potential_support != Game.EMPTY && potential_support != index) {
+            if (potential_support != Game.EMPTY && potential_support != id) {
                 return false;
             }
         }
@@ -77,28 +134,31 @@ public class Tetromino : MonoBehaviour {
         return true;
     }
 
-    public void UpdateFalling(int index) {
-        falling = ShouldFall(index);
+    public void UpdateFalling() {
+        falling = ShouldFall();
     }
 
-    public void WriteVoxels(int index) {
+    public void WriteVoxels() {
         // set voxels covered by tetronimo
         foreach (Vector3Int p in positions) {
-            Game.voxel_terrain[p.x, p.y, p.z] = index;
+            Game.voxel_terrain[p.x, p.y, p.z] = id;
         }
     }
 
     public void ClearVoxels() {
-        WriteVoxels(Game.EMPTY);
+        foreach (Vector3Int p in positions) {
+            Game.voxel_terrain[p.x, p.y, p.z] = Game.EMPTY;
+        }
     }
 
-    public void Fall(int index) {
+    public void Fall() {
         if (falling) {
             ClearVoxels();
             for (int i = 0; i < positions.Length; ++i) {
                 --positions[i].y;
             }
-            WriteVoxels(index);
+            --pivot.y;
+            WriteVoxels();
         }
     }
 
@@ -139,6 +199,84 @@ public class Tetromino : MonoBehaviour {
 
         System.Array.Resize(ref blocks, first);
         System.Array.Resize(ref positions, first);
+    }
+
+    private bool TryTransformTetromino(Vector3Int[] transformed_block, Vector3 transformed_pivot) {
+        // If the new position is out of bounds, don't move
+        for (int i = 0; i < transformed_block.Length; i++) {
+            if (transformed_block[i].x < 0 || transformed_block[i].x >= Game.WIDTH
+                || transformed_block[i].y < 0 || transformed_block[i].y >= Game.HEIGHT
+                || transformed_block[i].z < 0 || transformed_block[i].z >= Game.WIDTH) {
+                return false;
+            }
+        }
+
+        // Check if the new position would collide with anything
+        if (!BlockCollides(transformed_block, id)) {
+            ClearVoxels();
+
+            // If it doesn't collide, move the block
+            for (int i = 0; i < positions.Length; i++)
+                positions[i] = transformed_block[i];
+            pivot = transformed_pivot;
+
+            // Update the voxel values
+            WriteVoxels();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool XZMove(Vector2 xz_move) {
+        Vector3Int[] new_positions = new Vector3Int[positions.Length];
+        Vector3 new_pivot = pivot;
+        for (int i = 0; i < new_positions.Length; i++)
+            new_positions[i] = positions[i];
+
+        for (int i = 0; i < new_positions.Length; i++) {
+            new_positions[i] = positions[i] + new Vector3Int((int)xz_move.x, 0, (int)xz_move.y);
+        }
+        new_pivot += new Vector3Int((int)xz_move.x, 0, (int)xz_move.y);
+
+        if (TryTransformTetromino(new_positions, new_pivot)) {
+            positions = new_positions;
+            pivot = new_pivot;
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool Rotate(int axis, float direction) {
+        Vector3Int[] new_positions = new Vector3Int[positions.Length];
+        Vector3 new_pivot = pivot;
+        for (int i = 0; i < new_positions.Length; i++)
+            new_positions[i] = positions[i];
+
+        bool clockwise = direction > 0;
+
+        for (int i = 0; i < new_positions.Length; i++) {
+            Vector3 dist_from_pivot = positions[i] - pivot;
+
+            Vector3 temp = RotatePoint90(dist_from_pivot, axis, clockwise);
+            temp += pivot;
+
+            new_positions[i] = Vector3Int.FloorToInt(temp);
+        }
+
+        if (TryTransformTetromino(new_positions, new_pivot)) {
+            positions = new_positions;
+            pivot = new_pivot;
+            return true;
+        }
+
+        return false;
+    }
+
+    public void UpdateID(int new_id) {
+        id = new_id;
     }
 
     ~Tetromino() {
