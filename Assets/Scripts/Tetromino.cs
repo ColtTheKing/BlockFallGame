@@ -31,9 +31,9 @@ public class TetrominoFactory {
                 tetromino.positions[j][i] = temp;
             }
             // Pivot position
-            float tempf = tetromino.rotation_point[r];
-            tetromino.rotation_point[r] = tetromino.rotation_point[i];
-            tetromino.rotation_point[i] = tempf;
+            float tempf = tetromino.pivot[r];
+            tetromino.pivot[r] = tetromino.pivot[i];
+            tetromino.pivot[i] = tempf;
         }
 
         int max_x = Max(tetromino.positions, 0);
@@ -64,13 +64,13 @@ public class TetrominoFactory {
         }
 
         //Pivot position
-        Vector3 pf = tetromino.rotation_point;
+        Vector3 pf = tetromino.pivot;
         if (mirror_x) pf.x = max_x - pf.x;
         if (mirror_y) pf.y = max_y - pf.y;
         if (mirror_z) pf.z = max_z - pf.z;
         pf += offset;
 
-        tetromino.rotation_point = pf;
+        tetromino.pivot = pf;
 
         tetromino.UpdateID(id);
     }
@@ -79,7 +79,7 @@ public class TetrominoFactory {
 public class Tetromino : MonoBehaviour {
     public GameObject[] blocks;
     public Vector3Int[] positions;
-    public Vector3 rotation_point;
+    public Vector3 pivot;
     public bool falling, controlled;
     private int id;
 
@@ -157,7 +157,7 @@ public class Tetromino : MonoBehaviour {
             for (int i = 0; i < positions.Length; ++i) {
                 --positions[i].y;
             }
-            --rotation_point.y;
+            --pivot.y;
             WriteVoxels();
         }
     }
@@ -218,7 +218,7 @@ public class Tetromino : MonoBehaviour {
             // If it doesn't collide, move the block
             for (int i = 0; i < positions.Length; i++)
                 positions[i] = transformed_block[i];
-            rotation_point = transformed_pivot;
+            pivot = transformed_pivot;
 
             // Update the voxel values
             WriteVoxels();
@@ -231,7 +231,7 @@ public class Tetromino : MonoBehaviour {
 
     public bool XZMove(Vector2 xz_move) {
         Vector3Int[] new_positions = new Vector3Int[positions.Length];
-        Vector3 new_pivot = rotation_point;
+        Vector3 new_pivot = pivot;
         for (int i = 0; i < new_positions.Length; i++)
             new_positions[i] = positions[i];
 
@@ -242,7 +242,7 @@ public class Tetromino : MonoBehaviour {
 
         if (TryTransformTetromino(new_positions, new_pivot)) {
             positions = new_positions;
-            rotation_point = new_pivot;
+            pivot = new_pivot;
             return true;
         }
 
@@ -251,24 +251,24 @@ public class Tetromino : MonoBehaviour {
 
     public bool Rotate(int axis, float direction) {
         Vector3Int[] new_positions = new Vector3Int[positions.Length];
-        Vector3 new_pivot = rotation_point;
+        Vector3 new_pivot = pivot;
         for (int i = 0; i < new_positions.Length; i++)
             new_positions[i] = positions[i];
 
         bool clockwise = direction > 0;
 
         for (int i = 0; i < new_positions.Length; i++) {
-            Vector3 dist_from_pivot = positions[i] - rotation_point;
+            Vector3 dist_from_pivot = positions[i] - pivot;
 
             Vector3 temp = RotatePoint90(dist_from_pivot, axis, clockwise);
-            temp += rotation_point;
+            temp += pivot;
 
             new_positions[i] = Vector3Int.FloorToInt(temp);
         }
 
         if (TryTransformTetromino(new_positions, new_pivot)) {
             positions = new_positions;
-            rotation_point = new_pivot;
+            pivot = new_pivot;
             return true;
         }
 

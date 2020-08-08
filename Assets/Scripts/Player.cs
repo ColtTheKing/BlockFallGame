@@ -150,12 +150,6 @@ public class Player : MonoBehaviour {
 
         // If the player has a block, control it based player input
         if (selected_tetromino != null) {
-            // Transform the block positions based on the input
-            Vector3Int[] new_positions = new Vector3Int[selected_tetromino.blocks.Length];
-            Vector3 new_pivot = selected_tetromino.rotation_point;
-            for (int i = 0; i < new_positions.Length; i++)
-                new_positions[i] = selected_tetromino.positions[i];
-
             // Move the block along the x and z axes
             if (controls.Player.BlockMove.triggered)
                 selected_tetromino.XZMove(controls.Player.BlockMove.ReadValue<Vector2>());
