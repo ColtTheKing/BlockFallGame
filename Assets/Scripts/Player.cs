@@ -53,30 +53,6 @@ public class Player : MonoBehaviour {
         return intersection_depth > 0f;
     }
 
-    // Determines whether or not a block overlaps with any other block in the world
-    public bool BlockCollides(Vector3Int[] tetromino, int tetromino_id) {
-        for (int i = 0; i < tetromino.Length; i++) {
-            // If a position is not empty or a block from the current tetromino, it must be colliding
-            int id_at_position = Game.Terrain(tetromino[i]);
-
-            // Check at the terrain position of the block
-            if (id_at_position != -1 && id_at_position != tetromino_id)
-                return true;
-
-            // Check at the position above if in between layers
-            if (Game.fall_offset == 1f || Game.fall_offset == 0f) {
-                id_at_position = Game.Terrain(tetromino[i] + new Vector3Int(0, 1, 0));
-
-                // For this layer, don't collide with falling blocks since they will not be overlapping
-                if (id_at_position != -1 && id_at_position != tetromino_id
-                    && !Game.tetrominos[id_at_position].falling)
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     private void HandleCollisions() {
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
@@ -173,7 +149,7 @@ public class Player : MonoBehaviour {
         }
 
         // If the player has a block, control it based player input
-        if(selected_tetromino != null) {
+        if (selected_tetromino != null) {
             // Transform the block positions based on the input
             Vector3Int[] new_positions = new Vector3Int[selected_tetromino.blocks.Length];
             Vector3 new_pivot = selected_tetromino.rotation_point;
@@ -181,122 +157,21 @@ public class Player : MonoBehaviour {
                 new_positions[i] = selected_tetromino.positions[i];
 
             // Move the block along the x and z axes
-            if (controls.Player.BlockMove.triggered) {
-                Vector2 xzmove = controls.Player.BlockMove.ReadValue<Vector2>();
-                for (int i = 0; i < new_positions.Length; i++) {
-                    new_positions[i] = selected_tetromino.positions[i] + new Vector3Int((int)xzmove.x, 0, (int)xzmove.y);
-                }
-                new_pivot += new Vector3Int((int)xzmove.x, 0, (int)xzmove.y);
-
-                TryTransformTetromino(new_positions, new_pivot);
-            }
+            if (controls.Player.BlockMove.triggered)
+                selected_tetromino.XZMove(controls.Player.BlockMove.ReadValue<Vector2>());
 
             // Rotate the block around the x axis
-            if (controls.Player.XRotate.triggered) {
-                if (controls.Player.XRotate.ReadValue<float>() > 0) {
-                    // Clockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(dist_from_pivot.x, -dist_from_pivot.z, dist_from_pivot.y);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-                else {
-                    // Counterclockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(dist_from_pivot.x, dist_from_pivot.z, -dist_from_pivot.y);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-
-                TryTransformTetromino(new_positions, new_pivot);
-            }
+            if (controls.Player.XRotate.triggered)
+                selected_tetromino.Rotate(0, controls.Player.XRotate.ReadValue<float>());
 
             // Rotate the block around the y axis
-            if (controls.Player.YRotate.triggered) {
-                if (controls.Player.YRotate.ReadValue<float>() > 0) {
-                    // Clockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(dist_from_pivot.z, dist_from_pivot.y, -dist_from_pivot.x);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-                else {
-                    // Counterclockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(-dist_from_pivot.z, dist_from_pivot.y, dist_from_pivot.x);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-
-                TryTransformTetromino(new_positions, new_pivot);
-            }
+            if (controls.Player.YRotate.triggered)
+                selected_tetromino.Rotate(1, controls.Player.XRotate.ReadValue<float>());
 
             // Rotate the block around the z axis
-            if (controls.Player.ZRotate.triggered) {
-                if (controls.Player.ZRotate.ReadValue<float>() > 0) {
-                    // Clockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(-dist_from_pivot.y, dist_from_pivot.x, dist_from_pivot.z);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-                else {
-                    // Counterclockwise rotation
-                    for (int i = 0; i < new_positions.Length; i++) {
-                        Vector3 dist_from_pivot = selected_tetromino.positions[i] - selected_tetromino.rotation_point;
-                        Vector3 temp = new Vector3(dist_from_pivot.y, -dist_from_pivot.x, dist_from_pivot.z);
-                        temp += selected_tetromino.rotation_point;
-
-                        new_positions[i] = new Vector3Int((int)temp.x, (int)temp.y, (int)temp.z);
-                    }
-                }
-
-                TryTransformTetromino(new_positions, new_pivot);
-            }
+            if (controls.Player.ZRotate.triggered)
+                selected_tetromino.Rotate(2, controls.Player.XRotate.ReadValue<float>());
         }
-    }
-
-    private bool TryTransformTetromino(Vector3Int[] transformed_block, Vector3 transformed_pivot) {
-        // If the new position is out of bounds, don't move
-        for (int i = 0; i < transformed_block.Length; i++) {
-            if (transformed_block[i].x < 0 || transformed_block[i].x >= Game.WIDTH
-                || transformed_block[i].y < 0 || transformed_block[i].y >= Game.HEIGHT
-                || transformed_block[i].z < 0 || transformed_block[i].z >= Game.WIDTH) {
-                return false;
-            }
-        }
-
-        // Check if the new position would collide with anything
-        if (!BlockCollides(transformed_block, selected_tetromino_id)) {
-            selected_tetromino.ClearVoxels();
-
-            // If it doesn't collide, move the block
-            for (int i = 0; i < selected_tetromino.positions.Length; i++)
-                selected_tetromino.positions[i] = transformed_block[i];
-            selected_tetromino.rotation_point = transformed_pivot;
-
-            // Update the voxel values
-            selected_tetromino.WriteVoxels(selected_tetromino_id);
-
-            return true;
-        }
-
-        return false;
     }
 
     void Update() {

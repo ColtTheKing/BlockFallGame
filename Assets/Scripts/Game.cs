@@ -146,7 +146,7 @@ public class Game : MonoBehaviour {
             ticks_to_spawn = tetrominoSpawnPeriod;
 
             Tetromino tetromino = Instantiate(tetrominoPresets[Random.Range(0, tetrominoPresets.Length)]);
-            TetrominoFactory.FromPreset(tetromino);
+            TetrominoFactory.FromPreset(tetromino, tetrominos.Count);
             tetrominos.Add(tetromino);
         }
 
@@ -155,19 +155,22 @@ public class Game : MonoBehaviour {
             ticks_to_destroy_blocks = destroyBlockPeriod;
 
             DestroyBottomLayer();
+
+            // Update the ids in case the array indices shifted due to a deletion
+            for (int i = 0; i < tetrominos.Count; ++i) {
+                tetrominos[i].UpdateID(i);
+            }
         }
 
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].WriteVoxels(i);
+            tetrominos[i].WriteVoxels();
         }
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].UpdateFalling(i);
+            tetrominos[i].UpdateFalling();
         }
         for (int i = 0; i < tetrominos.Count; ++i) {
-            tetrominos[i].Fall(i);
+            tetrominos[i].Fall();
         }
-
-        // do stuff that would change indices here
     }
 
     private void UpdateVisuals() {
