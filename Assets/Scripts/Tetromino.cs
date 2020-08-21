@@ -77,6 +77,8 @@ public class TetrominoFactory {
 }
 
 public class Tetromino : MonoBehaviour {
+    public static readonly float MISALIGN_THRESHOLD = 0.3f;
+
     public GameObject[] blocks;
     public Vector3Int[] positions;
     public Vector3 pivot;
@@ -97,9 +99,10 @@ public class Tetromino : MonoBehaviour {
     }
 
     // Determines whether or not a block overlaps with any other block in the world
-    public static bool BlockCollides(Vector3Int[] tetromino, int tetromino_id) {
+    // If falling is false, fall_offset will be assumed not to apply to this tetromino
+    public static bool TetrominoCollide(Vector3Int[] tetromino, int tetromino_id, bool falling) {
         for (int i = 0; i < tetromino.Length; i++) {
-            // If a position is not empty or a block from the current tetromino, it must be colliding
+            // If a position is not empty or holding a block from the current tetromino, it must be colliding
             int id_at_position = Game.Terrain(tetromino[i]);
 
             // Check at the terrain position of the block
@@ -107,10 +110,10 @@ public class Tetromino : MonoBehaviour {
                 return true;
 
             // Check at the position above if in between layers
-            if (Game.fall_offset == 1f || Game.fall_offset == 0f) {
+            if (falling && Game.fall_offset < 1f && Game.fall_offset > 0f) {
                 id_at_position = Game.Terrain(tetromino[i] + new Vector3Int(0, 1, 0));
 
-                // For this layer, don't collide with falling blocks since they will not be overlapping
+                // For this layer, don't collide with falling tetrominos since they will not be overlapping
                 if (id_at_position != -1 && id_at_position != tetromino_id
                     && !Game.tetrominos[id_at_position].falling)
                     return true;
@@ -201,23 +204,41 @@ public class Tetromino : MonoBehaviour {
         System.Array.Resize(ref positions, first);
     }
 
-    private bool TryTransformTetromino(Vector3Int[] transformed_block, Vector3 transformed_pivot) {
+    private bool TryTransformTetromino(Vector3Int[] transformed_tetromino, Vector3 transformed_pivot) {
         // If the new position is out of bounds, don't move
-        for (int i = 0; i < transformed_block.Length; i++) {
-            if (transformed_block[i].x < 0 || transformed_block[i].x >= Game.WIDTH
-                || transformed_block[i].y < 0 || transformed_block[i].y >= Game.HEIGHT
-                || transformed_block[i].z < 0 || transformed_block[i].z >= Game.WIDTH) {
+        for (int i = 0; i < transformed_tetromino.Length; i++) {
+            if (transformed_tetromino[i].x < 0 || transformed_tetromino[i].x >= Game.WIDTH
+                || transformed_tetromino[i].y < 0 || transformed_tetromino[i].y >= Game.HEIGHT
+                || transformed_tetromino[i].z < 0 || transformed_tetromino[i].z >= Game.WIDTH) {
                 return false;
             }
         }
 
         // Check if the new position would collide with anything
-        if (!BlockCollides(transformed_block, id)) {
+        if (TetrominoCollide(transformed_tetromino, id, true)) {
+            // If it collides, check to see if nudging it down slightly would allow it to fit
+            if (Game.fall_offset <= MISALIGN_THRESHOLD && !TetrominoCollide(transformed_tetromino, id, false)) {
+                // If this allows it to fit, move it and set it to a non-falling tetromino
+                ClearVoxels();
+
+                for (int i = 0; i < positions.Length; i++)
+                    positions[i] = transformed_tetromino[i];
+                pivot = transformed_pivot;
+
+                // Update the voxel values
+                WriteVoxels();
+
+                falling = false;
+
+                return true;
+            }
+        }
+        else {
+            // If it doesn't collide, move the tetromino
             ClearVoxels();
 
-            // If it doesn't collide, move the block
             for (int i = 0; i < positions.Length; i++)
-                positions[i] = transformed_block[i];
+                positions[i] = transformed_tetromino[i];
             pivot = transformed_pivot;
 
             // Update the voxel values
@@ -225,7 +246,7 @@ public class Tetromino : MonoBehaviour {
 
             return true;
         }
-
+        
         return false;
     }
 
