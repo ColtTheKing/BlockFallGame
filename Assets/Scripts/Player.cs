@@ -53,6 +53,24 @@ public class Player : MonoBehaviour {
         return intersection_depth > 0f;
     }
 
+    // Determines if a cell within the world terrain is at least partially occupied by this player
+    // MAY NEED TO CHANGE THIS TO WORK WITH NON 1x2x1 PLAYERS LATER
+    public bool PositionOccupied(Vector3Int position) {
+        if (!alive) {
+            Vector3Int roundedPos = Vector3Int.RoundToInt(transform.position);
+
+            if (position.x == roundedPos.x - 1 || position.x == roundedPos.x) {
+                if (position.y == roundedPos.y - 1 || position.y == roundedPos.y || position.y == roundedPos.y + 1) {
+                    if (position.z == roundedPos.z - 1 || position.z == roundedPos.z) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void HandleCollisions() {
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
