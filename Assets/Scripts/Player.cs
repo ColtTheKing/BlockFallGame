@@ -53,23 +53,22 @@ public class Player : MonoBehaviour {
         return intersection_depth > 0f;
     }
 
-    // Determines which cells within the world terrain are at least partially occupied by this player
-    public List<Vector3Int> PositionsOccupied() {
-        List<Vector3Int> positions = new List<Vector3Int>();
-
-        if (alive) {
+    // Determines if a cell within the world terrain is at least partially occupied by this player
+    // MAY NEED TO CHANGE THIS TO WORK WITH NON 1x2x1 PLAYERS LATER
+    public bool PositionOccupied(Vector3Int position) {
+        if (!alive) {
             Vector3Int roundedPos = Vector3Int.RoundToInt(transform.position);
 
-            for (int x = roundedPos.x - 1; x < roundedPos.x + 1; x++) {
-                for (int y = roundedPos.y - 1; y < roundedPos.y + 2; y++) {
-                    for (int z = roundedPos.z - 1; z < roundedPos.z + 1; z++) {
-                        positions.Add(new Vector3Int(x, y, z));
+            if (position.x == roundedPos.x - 1 || position.x == roundedPos.x) {
+                if (position.y == roundedPos.y - 1 || position.y == roundedPos.y || position.y == roundedPos.y + 1) {
+                    if (position.z == roundedPos.z - 1 || position.z == roundedPos.z) {
+                        return true;
                     }
                 }
             }
         }
 
-        return positions;
+        return false;
     }
 
     private void HandleCollisions() {
