@@ -53,6 +53,25 @@ public class Player : MonoBehaviour {
         return intersection_depth > 0f;
     }
 
+    // Determines which cells within the world terrain are at least partially occupied by this player
+    public List<Vector3Int> PositionsOccupied() {
+        List<Vector3Int> positions = new List<Vector3Int>();
+
+        if (alive) {
+            Vector3Int roundedPos = Vector3Int.RoundToInt(transform.position);
+
+            for (int x = roundedPos.x - 1; x < roundedPos.x + 1; x++) {
+                for (int y = roundedPos.y - 1; y < roundedPos.y + 2; y++) {
+                    for (int z = roundedPos.z - 1; z < roundedPos.z + 1; z++) {
+                        positions.Add(new Vector3Int(x, y, z));
+                    }
+                }
+            }
+        }
+
+        return positions;
+    }
+
     private void HandleCollisions() {
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);

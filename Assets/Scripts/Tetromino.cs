@@ -98,15 +98,26 @@ public class Tetromino : MonoBehaviour {
         return v;
     }
 
-    // Determines whether or not a block overlaps with any other block in the world
+    // Determines whether or not a block overlaps with any other block or player in the world
     // If falling is false, fall_offset will be assumed not to apply to this tetromino
     public static bool TetrominoCollide(Vector3Int[] tetromino, int tetromino_id, bool falling) {
+        // Find all positions occupied by players
+        HashSet<Vector3Int> player_positions = new HashSet<Vector3Int>();
+
+        for (int i = 0; i < Game.players.Count; i++) {
+            List<Vector3Int> temp = Game.players[i].PositionsOccupied();
+
+            for (int j = 0; j < temp.Count; j++) {
+                player_positions.Add(temp[j]);
+            }
+        }
+
         for (int i = 0; i < tetromino.Length; i++) {
             // If a position is not empty or holding a block from the current tetromino, it must be colliding
             int id_at_position = Game.Terrain(tetromino[i]);
 
-            // Check at the terrain position of the block
-            if (id_at_position != -1 && id_at_position != tetromino_id)
+            // Check for other blocks or players at the terrain position of the block
+            if ((id_at_position != -1 && id_at_position != tetromino_id) || player_positions.Contains(tetromino[i]))
                 return true;
 
             // Check at the position above if in between layers
@@ -114,8 +125,8 @@ public class Tetromino : MonoBehaviour {
                 id_at_position = Game.Terrain(tetromino[i] + new Vector3Int(0, 1, 0));
 
                 // For this layer, don't collide with falling tetrominos since they will not be overlapping
-                if (id_at_position != -1 && id_at_position != tetromino_id
-                    && !Game.tetrominos[id_at_position].falling)
+                if ((id_at_position != -1 && id_at_position != tetromino_id && !Game.tetrominos[id_at_position].falling)
+                    || player_positions.Contains(tetromino[i] + new Vector3Int(0, 1, 0)))
                     return true;
             }
         }
