@@ -6,11 +6,16 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour {
     public float SPEED;
+    float JUMP_SPEED = 5.0f;
+    float AIR_ACCELERATION = 15.0f;
+
     float h = 1.5f; // box height
     float l = 0.5f; // box length and width
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
     private bool alive;
+    bool grounded;
+    Vector3 velocity;
     private Tetromino selected_tetromino;
     private int selected_tetromino_id;
     private Material material;
@@ -24,6 +29,8 @@ public class Player : MonoBehaviour {
 
     public void Start() {
         alive = true;
+        grounded = false;
+        velocity = Vector3.zero;
         selected_tetromino = null;
         selected_tetromino_id = -1;
         material = GetComponentInChildren<MeshRenderer>().material;
@@ -72,9 +79,11 @@ public class Player : MonoBehaviour {
     }
 
     private void HandleCollisions() {
+        grounded = false;
+
+        // collide with blocks
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
-
         for (int x = 0; x < 2; ++x) {
             for (int y = 0; y < 4; ++y) {
                 for (int z = 0; z < 2; ++z) {
@@ -87,6 +96,16 @@ public class Player : MonoBehaviour {
 
                         if (PlayerCollides(transform.position, block_position, out Vector3 normal, out float intersection_depth)) {
                             transform.position += normal * intersection_depth;
+
+                            if (normal.y == 1.0f) {
+                                grounded = true;
+                            }
+
+                            float collisionSpeed = Vector3.Dot(velocity, -normal);
+                            if (collisionSpeed > 0.0f) {
+                                velocity += collisionSpeed * normal;
+                            }
+
                             if (normal == Vector3.zero) {
                                 // player was improperly seperated and must be being crushed
                                 CrushPlayer();
@@ -95,6 +114,14 @@ public class Player : MonoBehaviour {
                     }
                 }
             }
+        }
+
+        // collide with floor
+        float min_y = (0.5f * h + r) - 0.5f;
+        if (transform.position.y < min_y) {
+            transform.position += (min_y - transform.position.y) * Vector3.up;
+            velocity.y = Mathf.Max(velocity.y, 0.0f);
+            grounded = true;
         }
     }
 
@@ -129,21 +156,37 @@ public class Player : MonoBehaviour {
         KillPlayer();
     }
 
+    Vector3 ClampSpeedXZ(Vector3 velocity, float max_speed) {
+        float speed = Mathf.Sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+        if (speed > max_speed) {
+            velocity.x *= max_speed / speed;
+            velocity.z *= max_speed / speed;
+        }
+        return velocity;
+    }
+
     private void AliveUpdate() {
-        Vector3 pos = transform.position;
+        Vector2 xz_input = controls.Player.Movement.ReadValue<Vector2>();
+        Vector3 acceleration = Physics.gravity;
+        if (grounded) {
+            velocity.x = xz_input[0] * SPEED;
+            velocity.z = xz_input[1] * SPEED;
+            if (controls.Player.Jump.triggered) {
+                velocity.y = JUMP_SPEED;
+            }
+        } else {
+            acceleration.x += xz_input[0] * AIR_ACCELERATION;
+            acceleration.z += xz_input[1] * AIR_ACCELERATION;
+        }
 
-        // Handles horizontal movement
-        Vector2 xzmove = controls.Player.Movement.ReadValue<Vector2>();
-        float ymove = controls.Player.Jump.ReadValue<float>() * 2 - 1;
-
-        // Normalizes horizontal movement and adds in jumping
-        // NOTE: Jumping currently can be negative to make up for out lack of gravity
-        Vector3 fullmove = new Vector3(xzmove.x, ymove, xzmove.y);
-
-        Vector3 velocity = fullmove * SPEED;
-        pos += velocity * Time.deltaTime;
-        pos.y = Mathf.Max(pos.y, r + h * 0.5f - 0.5f);
-        transform.position = pos;
+        // displacement = v*t + (a/2)*t*t
+        // v += (a/2)*t; for correct displacement
+        velocity += acceleration * 0.5f * Time.deltaTime;
+        velocity = ClampSpeedXZ(velocity, SPEED);
+        transform.position += velocity * Time.deltaTime;
+        // v += (a/2)*t; again for correct velocity
+        velocity += acceleration * 0.5f * Time.deltaTime;
+        velocity = ClampSpeedXZ(velocity, SPEED);
 
         HandleCollisions();
 
