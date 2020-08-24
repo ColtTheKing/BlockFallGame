@@ -530,7 +530,6 @@ MonoBehaviour:
   - {fileID: 1358656658629364246, guid: c831b68ef61783b4b8c2c1b635f60308, type: 3}
   floorGameObject: {fileID: 360539802}
   lavaGameObject: {fileID: 634061346}
-  tickSize: 0.5
   tetrominoSpawnPeriod: 1
   destroyBlockDelay: 60
   destroyBlockPeriod: 30

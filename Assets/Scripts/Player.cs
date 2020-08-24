@@ -57,7 +57,7 @@ public class Player : MonoBehaviour {
         intersection_depth = r - normal.magnitude;
 
         normal.Normalize();
-        return intersection_depth > 0f;
+        return intersection_depth >= 0f;
     }
 
     // Determines if a cell within the world terrain is at least partially occupied by this player
@@ -101,7 +101,9 @@ public class Player : MonoBehaviour {
                                 grounded = true;
                             }
 
-                            float collisionSpeed = Vector3.Dot(velocity, -normal);
+                            Vector3 tetromino_velocity = (Game.tetrominos[tetromino_id].falling) ? Vector3.down / Game.tickSize : Vector3.zero;
+                            Vector3 relative_velocity = velocity - tetromino_velocity;
+                            float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
                             if (collisionSpeed > 0.0f) {
                                 velocity += collisionSpeed * normal;
                             }
@@ -118,7 +120,7 @@ public class Player : MonoBehaviour {
 
         // collide with floor
         float min_y = (0.5f * h + r) - 0.5f;
-        if (transform.position.y < min_y) {
+        if (transform.position.y <= min_y) {
             transform.position += (min_y - transform.position.y) * Vector3.up;
             velocity.y = Mathf.Max(velocity.y, 0.0f);
             grounded = true;

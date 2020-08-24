@@ -10,11 +10,11 @@ public class Game : MonoBehaviour {
     public GameObject floorGameObject;
     public GameObject lavaGameObject;
     [Header("Settings")]
-    public float tickSize;
     public int tetrominoSpawnPeriod;
     public int destroyBlockDelay;
     public int destroyBlockPeriod;
 
+    public static float tickSize = 0.5f;
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
     public static readonly int EMPTY = -1;
