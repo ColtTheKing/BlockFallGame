@@ -110,21 +110,21 @@ public class Tetromino : MonoBehaviour {
                 return true;
 
             for (int j = 0; j < Game.players.Count; j++) {
-                if (Game.players[i].PositionOccupied(tetromino[i])) {
+                if (Game.players[j].PositionOccupied(tetromino[i])) {
                     return true;
                 }
             }
 
             // Check at the position above if in between layers
             if (falling && Game.fall_offset < 1f && Game.fall_offset > 0f) {
-                id_at_position = Game.Terrain(tetromino[i] + new Vector3Int(0, 1, 0));
+                id_at_position = Game.Terrain(tetromino[i] + Vector3Int.up);
 
                 // For this layer, don't collide with falling tetrominos since they will not be overlapping
                 if ((id_at_position != -1 && id_at_position != tetromino_id && !Game.tetrominos[id_at_position].falling))
                     return true;
 
                 for (int j = 0; j < Game.players.Count; j++) {
-                    if (Game.players[i].PositionOccupied(tetromino[i] + new Vector3Int(0, 1, 0))) {
+                    if (Game.players[j].PositionOccupied(tetromino[i] + Vector3Int.up)) {
                         return true;
                     }
                 }

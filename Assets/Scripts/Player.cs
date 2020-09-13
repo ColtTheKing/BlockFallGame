@@ -283,11 +283,11 @@ public class Player : MonoBehaviour {
 
             // Rotate the block around the y axis
             if (controls.Player.YRotate.triggered)
-                selected_tetromino.Rotate(1, controls.Player.XRotate.ReadValue<float>());
+                selected_tetromino.Rotate(1, controls.Player.YRotate.ReadValue<float>());
 
             // Rotate the block around the z axis
             if (controls.Player.ZRotate.triggered)
-                selected_tetromino.Rotate(2, controls.Player.XRotate.ReadValue<float>());
+                selected_tetromino.Rotate(2, controls.Player.ZRotate.ReadValue<float>());
         }
     }
 
