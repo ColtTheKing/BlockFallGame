@@ -8,6 +8,8 @@ public class Player : MonoBehaviour {
     public float SPEED;
     float JUMP_SPEED = 5.0f;
     float AIR_ACCELERATION = 15.0f;
+    float MU = 0.1f;
+    float MASS = 25.0f;
 
     float h = 1.5f; // box height
     float l = 0.5f; // box length and width
@@ -40,7 +42,9 @@ public class Player : MonoBehaviour {
         controls.devices = new InputDevice[] { device };
     }
 
-    public bool PlayerCollides(Vector3 player, Vector3 cube, out Vector3 normal, out float intersection_depth) {
+    public bool BlockCollides(Vector3 cube, out Vector3 normal, out float intersection_depth) {
+        Vector3 player = transform.position;
+
         // nearest point in player box to cube origin
         Vector3 p1 = new Vector3(Mathf.Clamp(cube.x, player.x - l * 0.5f, player.x + l * 0.5f),
                                 Mathf.Clamp(cube.y, player.y - h * 0.5f, player.y + h * 0.5f),
@@ -55,6 +59,28 @@ public class Player : MonoBehaviour {
         // in that case normal and intersection distance are incorrect
         normal = p1 - p2;
         intersection_depth = r - normal.magnitude;
+
+        normal.Normalize();
+        return intersection_depth >= 0f;
+    }
+
+    public bool PlayerCollides(Vector3 other, out Vector3 normal, out float intersection_depth) {
+        Vector3 player = transform.position;
+
+        // nearest point in player box to other origin
+        Vector3 p1 = new Vector3(Mathf.Clamp(other.x, player.x - l * 0.5f, player.x + l * 0.5f),
+                                Mathf.Clamp(other.y, player.y - h * 0.5f, player.y + h * 0.5f),
+                                Mathf.Clamp(other.z, player.z - l * 0.5f, player.z + l * 0.5f));
+
+        // nearest point in other box to p1
+        Vector3 p2 = new Vector3(Mathf.Clamp(p1.x, other.x - l * 0.5f, other.x + l * 0.5f),
+                        Mathf.Clamp(p1.y, other.y - h * 0.5f, other.y + h * 0.5f),
+                        Mathf.Clamp(p1.z, other.z - l * 0.5f, other.z + l * 0.5f));
+
+        // p1 may equal p2
+        // in that case normal and intersection distance are incorrect
+        normal = p1 - p2;
+        intersection_depth = 2.0f * r - normal.magnitude;
 
         normal.Normalize();
         return intersection_depth >= 0f;
@@ -81,6 +107,28 @@ public class Player : MonoBehaviour {
     private void HandleCollisions() {
         grounded = false;
 
+        // collide with players
+        for (int i = Game.players.IndexOf(this); i < Game.players.Count; ++i) {
+            Player other = Game.players[i];
+            if (PlayerCollides(other.transform.position, out Vector3 normal, out float intersection_depth)) {
+                transform.position          += 0.5f * normal * intersection_depth;
+                other.transform.position    -= 0.5f * normal * intersection_depth;
+
+                if (normal.y == 1.0f) {
+                    grounded = true;
+                } else if (normal.y == -1.0f) {
+                    other.grounded = true;
+                }
+                
+                Vector3 relative_velocity = velocity - other.velocity;
+                float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
+                if (collisionSpeed > 0.0f) {
+                    velocity        += 0.5f * collisionSpeed * normal;
+                    other.velocity  -= 0.5f * collisionSpeed * normal;
+                }
+            }
+        }
+
         // collide with blocks
         // Shoves player position down since their y position is in between voxels
         Vector3Int player_corner = Vector3Int.FloorToInt(transform.position - 1.5f * Vector3.up);
@@ -94,10 +142,10 @@ public class Player : MonoBehaviour {
                         float fall_offset = Game.tetrominos[tetromino_id].falling ? Game.fall_offset : 0f;
                         Vector3 block_position = new Vector3(p.x, p.y + fall_offset, p.z);
 
-                        if (PlayerCollides(transform.position, block_position, out Vector3 normal, out float intersection_depth)) {
+                        if (BlockCollides(block_position, out Vector3 normal, out float intersection_depth)) {
                             transform.position += normal * intersection_depth;
 
-                            if (normal.y == 1.0f) {
+                            if (normal.y >= 0.9f) {
                                 grounded = true;
                             }
 
@@ -171,8 +219,20 @@ public class Player : MonoBehaviour {
         Vector2 xz_input = controls.Player.Movement.ReadValue<Vector2>();
         Vector3 acceleration = Physics.gravity;
         if (grounded) {
-            velocity.x = xz_input[0] * SPEED;
-            velocity.z = xz_input[1] * SPEED;
+            // speed of ground relative to player feet
+            Vector2 relative_velocity_xz = new Vector2(
+                xz_input[0] * SPEED - velocity.x,
+                xz_input[1] * SPEED - velocity.z
+            );
+            // rescale to try and match desired offset this frame
+            // clamp acceleration to respect drag from ground
+            Vector2 acceleration_xz = Vector2.ClampMagnitude(
+                relative_velocity_xz * 2.0f / Time.deltaTime, 
+                MU * MASS * -acceleration.y
+            );
+            acceleration.x += acceleration_xz[0];
+            acceleration.z += acceleration_xz[1];
+
             if (controls.Player.Jump.triggered) {
                 velocity.y = JUMP_SPEED;
             }
