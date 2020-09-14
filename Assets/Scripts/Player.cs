@@ -19,7 +19,6 @@ public class Player : MonoBehaviour {
     int lastGrounded;
     Vector3 velocity;
     private Tetromino selected_tetromino;
-    private int selected_tetromino_id;
     private Material material;
 
     private InputController controls;
@@ -34,7 +33,6 @@ public class Player : MonoBehaviour {
         lastGrounded = int.MinValue;
         velocity = Vector3.zero;
         selected_tetromino = null;
-        selected_tetromino_id = -1;
         material = GetComponentInChildren<MeshRenderer>().material;
     }
 
@@ -261,12 +259,11 @@ public class Player : MonoBehaviour {
         if (selected_tetromino != null && !selected_tetromino.falling) {
             // WILL NEED TO TRACK THESE BLOCKS LATER FOR SCORING
             selected_tetromino = null;
-            selected_tetromino_id = -1;
         }
 
         // If the player doesn't have a block, try to find them one to control
         if (selected_tetromino == null) {
-            selected_tetromino_id = Game.GrabTetromino(material, out selected_tetromino);
+            selected_tetromino = Game.GrabTetromino(material);
         }
 
         // If the player has a block, control it based player input

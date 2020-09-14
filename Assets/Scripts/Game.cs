@@ -120,10 +120,10 @@ public class Game : MonoBehaviour {
     }
 
     //Grab the newest tetromino that isn't already taken or on the ground
-    public static int GrabTetromino(Material material, out Tetromino tetromino) {
+    public static Tetromino GrabTetromino(Material material) {
         for (int i = tetrominos.Count - 1; i > 0; i--) {
             if (!tetrominos[i].controlled && tetrominos[i].falling) {
-                tetromino = tetrominos[i];
+                Tetromino tetromino = tetrominos[i];
                 tetromino.controlled = true;
 
                 // add colour to the blocks based on the player (make this a glow or something later?)
@@ -132,12 +132,11 @@ public class Game : MonoBehaviour {
                     blocks[j].material = material;
                 }
 
-                return i;
+                return tetromino;
             }
         }
 
-        tetromino = null;
-        return -1;
+        return null;
     }
 
     private void UpdateLogic() {
