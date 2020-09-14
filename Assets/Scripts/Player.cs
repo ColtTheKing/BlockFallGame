@@ -16,7 +16,7 @@ public class Player : MonoBehaviour {
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
     private bool alive;
-    bool grounded;
+    int lastGrounded;
     Vector3 velocity;
     private Tetromino selected_tetromino;
     private int selected_tetromino_id;
@@ -31,7 +31,7 @@ public class Player : MonoBehaviour {
 
     public void Start() {
         alive = true;
-        grounded = false;
+        lastGrounded = int.MinValue;
         velocity = Vector3.zero;
         selected_tetromino = null;
         selected_tetromino_id = -1;
@@ -105,8 +105,6 @@ public class Player : MonoBehaviour {
     }
 
     private void HandleCollisions() {
-        grounded = false;
-
         // collide with players
         for (int i = Game.players.IndexOf(this); i < Game.players.Count; ++i) {
             Player other = Game.players[i];
@@ -115,9 +113,9 @@ public class Player : MonoBehaviour {
                 other.transform.position    -= 0.5f * normal * intersection_depth;
 
                 if (normal.y == 1.0f) {
-                    grounded = true;
+                    lastGrounded = Time.frameCount;
                 } else if (normal.y == -1.0f) {
-                    other.grounded = true;
+                    other.lastGrounded = Time.frameCount;
                 }
                 
                 Vector3 relative_velocity = velocity - other.velocity;
@@ -145,8 +143,8 @@ public class Player : MonoBehaviour {
                         if (BlockCollides(block_position, out Vector3 normal, out float intersection_depth)) {
                             transform.position += normal * intersection_depth;
 
-                            if (normal.y >= 0.9f) {
-                                grounded = true;
+                            if (normal.y == 1.0f) {
+                                lastGrounded = Time.frameCount;
                             }
 
                             Vector3 tetromino_velocity = (Game.tetrominos[tetromino_id].falling) ? Vector3.down / Game.tickSize : Vector3.zero;
@@ -171,7 +169,7 @@ public class Player : MonoBehaviour {
         if (transform.position.y <= min_y) {
             transform.position += (min_y - transform.position.y) * Vector3.up;
             velocity.y = Mathf.Max(velocity.y, 0.0f);
-            grounded = true;
+            lastGrounded = Time.frameCount;
         }
     }
 
@@ -218,7 +216,7 @@ public class Player : MonoBehaviour {
     private void AliveUpdate() {
         Vector2 xz_input = controls.Player.Movement.ReadValue<Vector2>();
         Vector3 acceleration = Physics.gravity;
-        if (grounded) {
+        if (lastGrounded + 1 >= Time.frameCount) {
             // speed of ground relative to player feet
             Vector2 relative_velocity_xz = new Vector2(
                 xz_input[0] * SPEED - velocity.x,
