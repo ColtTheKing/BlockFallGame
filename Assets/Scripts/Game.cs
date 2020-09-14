@@ -10,11 +10,11 @@ public class Game : MonoBehaviour {
     public GameObject floorGameObject;
     public GameObject lavaGameObject;
     [Header("Settings")]
-    public float tickSize;
     public int tetrominoSpawnPeriod;
     public int destroyBlockDelay;
     public int destroyBlockPeriod;
 
+    public static float tickSize = 0.5f;
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
     public static readonly int EMPTY = -1;
@@ -38,9 +38,13 @@ public class Game : MonoBehaviour {
     }
 
     public static void PlayerDied() {
-        if (++dead_players >= players.Count - 1)
+        if (++dead_players >= players.Count - 1) {
             //EndGame();
-            ;
+        }
+    }
+
+    internal static void PlayerRessurected() {
+        --dead_players;
     }
 
     public static void EndGame() {
@@ -120,10 +124,10 @@ public class Game : MonoBehaviour {
     }
 
     //Grab the newest tetromino that isn't already taken or on the ground
-    public static int GrabTetromino(Material material, out Tetromino tetromino) {
-        for (int i = tetrominos.Count - 1; i > 0; i--) {
+    public static Tetromino GrabTetromino(Material material) {
+        for (int i = tetrominos.Count - 1; i >= 0; i--) {
             if (!tetrominos[i].controlled && tetrominos[i].falling) {
-                tetromino = tetrominos[i];
+                Tetromino tetromino = tetrominos[i];
                 tetromino.controlled = true;
 
                 // add colour to the blocks based on the player (make this a glow or something later?)
@@ -132,12 +136,11 @@ public class Game : MonoBehaviour {
                     blocks[j].material = material;
                 }
 
-                return i;
+                return tetromino;
             }
         }
 
-        tetromino = null;
-        return -1;
+        return null;
     }
 
     private void UpdateLogic() {
