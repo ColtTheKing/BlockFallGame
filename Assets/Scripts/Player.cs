@@ -15,7 +15,7 @@ public class Player : MonoBehaviour {
     float l = 0.5f; // box length and width
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
-    private bool alive;
+    public bool alive;
     int lastGrounded;
     Vector3 velocity;
     private Tetromino selected_tetromino;
@@ -106,7 +106,7 @@ public class Player : MonoBehaviour {
         // collide with players
         for (int i = Game.players.IndexOf(this); i < Game.players.Count; ++i) {
             Player other = Game.players[i];
-            if (PlayerCollides(other.transform.position, out Vector3 normal, out float intersection_depth)) {
+            if (other.alive && PlayerCollides(other.transform.position, out Vector3 normal, out float intersection_depth)) {
                 transform.position          += 0.5f * normal * intersection_depth;
                 other.transform.position    -= 0.5f * normal * intersection_depth;
 
@@ -172,13 +172,16 @@ public class Player : MonoBehaviour {
     }
 
     private void ResurrectPlayer() {
-        // GetComponentInChildren<CapsuleCollider>().gameObject.SetActive(true);
+        GetComponentInChildren<MeshRenderer>().enabled = true;
+
+        alive = true;
         // Move to spawn position
+        Game.PlayerRessurected();
     }
 
     private void KillPlayer() {
         // Disable the player's physical form
-        GetComponentInChildren<CapsuleCollider>().gameObject.SetActive(false);
+        GetComponentInChildren<MeshRenderer>().enabled = false;
 
         alive = false;
         Game.PlayerDied();

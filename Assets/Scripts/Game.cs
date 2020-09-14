@@ -38,9 +38,13 @@ public class Game : MonoBehaviour {
     }
 
     public static void PlayerDied() {
-        if (++dead_players >= players.Count - 1)
+        if (++dead_players >= players.Count - 1) {
             //EndGame();
-            ;
+        }
+    }
+
+    internal static void PlayerRessurected() {
+        --dead_players;
     }
 
     public static void EndGame() {
@@ -121,7 +125,7 @@ public class Game : MonoBehaviour {
 
     //Grab the newest tetromino that isn't already taken or on the ground
     public static Tetromino GrabTetromino(Material material) {
-        for (int i = tetrominos.Count - 1; i > 0; i--) {
+        for (int i = tetrominos.Count - 1; i >= 0; i--) {
             if (!tetrominos[i].controlled && tetrominos[i].falling) {
                 Tetromino tetromino = tetrominos[i];
                 tetromino.controlled = true;
