@@ -87,7 +87,7 @@ public class Player : MonoBehaviour {
     // Determines if a cell within the world terrain is at least partially occupied by this player
     // MAY NEED TO CHANGE THIS TO WORK WITH NON 1x2x1 PLAYERS LATER
     public bool PositionOccupied(Vector3Int position) {
-        if (!alive) {
+        if (alive) {
             Vector3Int roundedPos = Vector3Int.RoundToInt(transform.position);
 
             if (position.x == roundedPos.x - 1 || position.x == roundedPos.x) {

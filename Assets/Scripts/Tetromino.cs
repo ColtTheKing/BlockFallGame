@@ -98,49 +98,13 @@ public class Tetromino : MonoBehaviour {
         return v;
     }
 
-    // Determines whether or not a block overlaps with any other block or player in the world
-    // If falling is false, fall_offset will be assumed not to apply to this tetromino
-    public static bool TetrominoCollide(Vector3Int[] tetromino, int tetromino_id, bool falling) {
-        for (int i = 0; i < tetromino.Length; i++) {
-            // If a position is not empty or holding a block from the current tetromino, it must be colliding
-            int id_at_position = Game.Terrain(tetromino[i]);
-
-            // Check for other blocks or players at the terrain position of the block
-            if ((id_at_position != -1 && id_at_position != tetromino_id))
-                return true;
-
-            for (int j = 0; j < Game.players.Count; j++) {
-                if (Game.players[j].PositionOccupied(tetromino[i])) {
-                    return true;
-                }
-            }
-
-            // Check at the position above if in between layers
-            if (falling && Game.fall_offset < 1f && Game.fall_offset > 0f) {
-                id_at_position = Game.Terrain(tetromino[i] + Vector3Int.up);
-
-                // For this layer, don't collide with falling tetrominos since they will not be overlapping
-                if ((id_at_position != -1 && id_at_position != tetromino_id && !Game.tetrominos[id_at_position].falling))
-                    return true;
-
-                for (int j = 0; j < Game.players.Count; j++) {
-                    if (Game.players[j].PositionOccupied(tetromino[i] + Vector3Int.up)) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
     bool ShouldFall() {
         // can't fall if supported from below by another block
         foreach (Vector3Int p in positions) {
             if (p.y == 0) return false;
 
-            int potential_support = Game.voxel_terrain[p.x, p.y - 1, p.z];
-            if (potential_support != Game.EMPTY && potential_support != id) {
+            int index = Game.voxel_terrain[p.x, p.y - 1, p.z];
+            if (index != Game.EMPTY && index != id && !Game.tetrominos[index].falling) {
                 return false;
             }
         }
@@ -215,96 +179,106 @@ public class Tetromino : MonoBehaviour {
         System.Array.Resize(ref positions, first);
     }
 
-    private bool TryTransformTetromino(Vector3Int[] transformed_tetromino, Vector3 transformed_pivot) {
-        // If the new position is out of bounds, don't move
-        for (int i = 0; i < transformed_tetromino.Length; i++) {
-            if (transformed_tetromino[i].x < 0 || transformed_tetromino[i].x >= Game.WIDTH
-                || transformed_tetromino[i].y < 0 || transformed_tetromino[i].y >= Game.HEIGHT
-                || transformed_tetromino[i].z < 0 || transformed_tetromino[i].z >= Game.WIDTH) {
+    // Determines whether or not a block overlaps with any other block or player in the world
+    private bool PositionsLegal(Vector3Int[] new_positions, bool incrementLayer, bool ignoreFalling) {
+        for (int i = 0; i < new_positions.Length; i++) {
+            Vector3Int position = new_positions[i];
+            if (incrementLayer) ++position.y;
+
+            if (position.x < 0 || position.x >= Game.WIDTH
+                || position.y < 0 || position.y >= Game.HEIGHT
+                || position.z < 0 || position.z >= Game.WIDTH) {
                 return false;
             }
-        }
 
-        // Check if the new position would collide with anything
-        if (TetrominoCollide(transformed_tetromino, id, true)) {
-            // If it collides, check to see if nudging it down slightly would allow it to fit
-            if (Game.fall_offset <= MISALIGN_THRESHOLD && !TetrominoCollide(transformed_tetromino, id, false)) {
-                // If this allows it to fit, move it and set it to a non-falling tetromino
-                ClearVoxels();
+            // Check for other blocks
+            int index = Game.Terrain(position);
+            if (index != -1 && index != id) {
+                if (!ignoreFalling || !Game.tetrominos[index].falling) {
+                    return false;
+                }
+            }
 
-                for (int i = 0; i < positions.Length; i++)
-                    positions[i] = transformed_tetromino[i];
-                pivot = transformed_pivot;
-
-                // Update the voxel values
-                WriteVoxels();
-
-                falling = false;
-
-                return true;
+            // Check for players
+            for (int j = 0; j < Game.players.Count; j++) {
+                if (Game.players[j].PositionOccupied(position)) {
+                    return false;
+                }
             }
         }
-        else {
-            // If it doesn't collide, move the tetromino
-            ClearVoxels();
 
-            for (int i = 0; i < positions.Length; i++)
-                positions[i] = transformed_tetromino[i];
-            pivot = transformed_pivot;
+        return true;
+    }
 
-            // Update the voxel values
-            WriteVoxels();
+    void ApplyTransform(Vector3Int[] new_positions, Vector3 new_pivot) {
+        // Update the voxel values
+        ClearVoxels();
+        positions = new_positions;
+        WriteVoxels();
 
-            return true;
+        pivot = new_pivot;
+    }
+
+    bool TryTransform(Vector3Int[] new_positions, Vector3 new_pivot, bool try_settle) {
+        bool lower_legal = PositionsLegal(new_positions, false, false);
+        if (!falling) {
+            if (lower_legal) ApplyTransform(new_positions, new_pivot);
+            return lower_legal;
         }
-        
-        return false;
+
+        bool upper_legal = PositionsLegal(new_positions, true, lower_legal);
+
+        if (!lower_legal && !upper_legal) {
+            return false;
+        }
+        if (!try_settle && (!lower_legal || !upper_legal)) {
+            return false;
+        }
+
+        if (!upper_legal) {
+            // check if we can settle down to make legal
+            if (Game.fall_offset > MISALIGN_THRESHOLD) {
+                return false;
+            }
+            falling = false;
+        }
+        if (!lower_legal) {
+            // check if we can settle up to make legal
+            if (1.0f - Game.fall_offset > MISALIGN_THRESHOLD) {
+                return false;
+            }
+            for (int i = 0; i < new_positions.Length; i++) {
+                ++new_positions[i].y;
+            }
+            falling = false;
+        }
+
+        ApplyTransform(new_positions, new_pivot);
+        return true;
     }
 
     public bool XZMove(Vector2 xz_move) {
         Vector3Int[] new_positions = new Vector3Int[positions.Length];
-        Vector3 new_pivot = pivot;
-        for (int i = 0; i < new_positions.Length; i++)
-            new_positions[i] = positions[i];
-
         for (int i = 0; i < new_positions.Length; i++) {
             new_positions[i] = positions[i] + new Vector3Int((int)xz_move.x, 0, (int)xz_move.y);
         }
-        new_pivot += new Vector3Int((int)xz_move.x, 0, (int)xz_move.y);
+        Vector3 new_pivot = pivot + new Vector3Int((int)xz_move.x, 0, (int)xz_move.y);
 
-        if (TryTransformTetromino(new_positions, new_pivot)) {
-            positions = new_positions;
-            pivot = new_pivot;
-            return true;
-        }
-
-        return false;
+        return TryTransform(new_positions, new_pivot, true);
     }
 
     public bool Rotate(int axis, float direction) {
         Vector3Int[] new_positions = new Vector3Int[positions.Length];
-        Vector3 new_pivot = pivot;
-        for (int i = 0; i < new_positions.Length; i++)
-            new_positions[i] = positions[i];
-
         bool clockwise = direction > 0;
-
         for (int i = 0; i < new_positions.Length; i++) {
-            Vector3 dist_from_pivot = positions[i] - pivot;
-
-            Vector3 temp = RotatePoint90(dist_from_pivot, axis, clockwise);
+            Vector3 temp = positions[i];
+            temp -= pivot;
+            temp = RotatePoint90(temp, axis, clockwise);
             temp += pivot;
-
-            new_positions[i] = Vector3Int.FloorToInt(temp);
+            new_positions[i] = Vector3Int.RoundToInt(temp);
         }
 
-        if (TryTransformTetromino(new_positions, new_pivot)) {
-            positions = new_positions;
-            pivot = new_pivot;
-            return true;
-        }
-
-        return false;
+        return TryTransform(new_positions, pivot, true);
     }
 
     public void UpdateID(int new_id) {
