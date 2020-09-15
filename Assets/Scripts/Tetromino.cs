@@ -104,7 +104,7 @@ public class Tetromino : MonoBehaviour {
             if (p.y == 0) return false;
 
             int index = Game.voxel_terrain[p.x, p.y - 1, p.z];
-            if (index != Game.EMPTY && index != id && !Game.tetrominos[index].falling) {
+            if (index != Game.EMPTY && index != id && !(falling && Game.tetrominos[index].falling)) {
                 return false;
             }
         }
