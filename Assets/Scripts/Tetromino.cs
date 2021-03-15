@@ -73,6 +73,8 @@ public class TetrominoFactory {
         tetromino.pivot = pf;
 
         tetromino.UpdateID(id);
+
+        tetromino.owner = null;
     }
 }
 
@@ -82,6 +84,7 @@ public class Tetromino : MonoBehaviour {
     public GameObject[] blocks;
     public Vector3Int[] positions;
     public Vector3 pivot;
+    public Player owner;
     public bool falling, controlled;
     private int id;
 

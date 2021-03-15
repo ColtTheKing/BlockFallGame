@@ -18,6 +18,7 @@ public class Game : MonoBehaviour {
     public static readonly int WIDTH = 16;
     public static readonly int HEIGHT = 16;
     public static readonly int EMPTY = -1;
+    public static readonly Vector3 SPAWN_POSITION = new Vector3(7.5f, 17f, 7.5f);
     public static List<Tetromino> tetrominos;
     public static List<Player> players;
     public static Lava lava;

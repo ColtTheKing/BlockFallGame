@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour {
     public float SPEED;
+    int POINTS_TO_REZ = 6;
     float JUMP_SPEED = 5.0f;
     float AIR_ACCELERATION = 15.0f;
     float MU = 0.1f;
@@ -16,8 +17,8 @@ public class Player : MonoBehaviour {
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
     public bool alive;
-    int lastGrounded;
-    Vector3 velocity;
+    private int lastGrounded, resurrectPoints;
+    private Vector3 velocity;
     private Tetromino selected_tetromino;
     private Material material;
 
@@ -30,6 +31,7 @@ public class Player : MonoBehaviour {
 
     public void Start() {
         alive = true;
+        resurrectPoints = 0;
         lastGrounded = int.MinValue;
         velocity = Vector3.zero;
         selected_tetromino = null;
@@ -143,6 +145,10 @@ public class Player : MonoBehaviour {
 
                             if (normal.y == 1.0f) {
                                 lastGrounded = Time.frameCount;
+                                //Tell the tetromino if it was stepped on by another player
+                                Tetromino steppedOnBlock = Game.tetrominos[tetromino_id];
+                                if (steppedOnBlock.owner != null && steppedOnBlock.owner != this)
+                                    steppedOnBlock.owner.AddRezPoints();
                             }
 
                             Vector3 tetromino_velocity = (Game.tetrominos[tetromino_id].falling) ? Vector3.down / Game.tickSize : Vector3.zero;
@@ -171,11 +177,18 @@ public class Player : MonoBehaviour {
         }
     }
 
-    private void ResurrectPlayer() {
-        GetComponentInChildren<MeshRenderer>().enabled = true;
+    public void AddRezPoints() {
+        if (++resurrectPoints >= POINTS_TO_REZ)
+            ResurrectPlayer();
+    }
 
-        alive = true;
+    private void ResurrectPlayer() {
         // Move to spawn position
+        transform.position = Game.SPAWN_POSITION;
+
+        GetComponentInChildren<MeshRenderer>().enabled = true;
+        alive = true;
+
         Game.PlayerRessurected();
     }
 
@@ -184,6 +197,7 @@ public class Player : MonoBehaviour {
         GetComponentInChildren<MeshRenderer>().enabled = false;
 
         alive = false;
+        resurrectPoints = 0;
         Game.PlayerDied();
     }
 
@@ -267,6 +281,7 @@ public class Player : MonoBehaviour {
         // If the player doesn't have a block, try to find them one to control
         if (selected_tetromino == null) {
             selected_tetromino = Game.GrabTetromino(material);
+            selected_tetromino.owner = this;
         }
 
         // If the player has a block, control it based player input
