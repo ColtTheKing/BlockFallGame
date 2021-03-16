@@ -16,7 +16,7 @@ public class Player : MonoBehaviour {
     float l = 0.5f; // box length and width
     float r = 0.25f; //radius of the spheres that make up the corners of the player shape
 
-    public bool alive;
+    public bool alive, intangible;
     private int lastGrounded, resurrectPoints;
     private Vector3 velocity;
     private Tetromino selected_tetromino;
@@ -31,6 +31,7 @@ public class Player : MonoBehaviour {
 
     public void Start() {
         alive = true;
+        intangible = false;
         resurrectPoints = 0;
         lastGrounded = int.MinValue;
         velocity = Vector3.zero;
@@ -113,16 +114,19 @@ public class Player : MonoBehaviour {
                 other.transform.position    -= 0.5f * normal * intersection_depth;
 
                 if (normal.y == 1.0f) {
-                    lastGrounded = Time.frameCount;
+                    TouchGround();
                 } else if (normal.y == -1.0f) {
-                    other.lastGrounded = Time.frameCount;
+                    other.TouchGround();
                 }
-                
-                Vector3 relative_velocity = velocity - other.velocity;
-                float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
-                if (collisionSpeed > 0.0f) {
-                    velocity        += 0.5f * collisionSpeed * normal;
-                    other.velocity  -= 0.5f * collisionSpeed * normal;
+
+                //Ignore all other collisions if the player is intangible
+                if (!intangible) {
+                    Vector3 relative_velocity = velocity - other.velocity;
+                    float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
+                    if (collisionSpeed > 0.0f) {
+                        velocity += 0.5f * collisionSpeed * normal;
+                        other.velocity -= 0.5f * collisionSpeed * normal;
+                    }
                 }
             }
         }
@@ -144,23 +148,28 @@ public class Player : MonoBehaviour {
                             transform.position += normal * intersection_depth;
 
                             if (normal.y == 1.0f) {
-                                lastGrounded = Time.frameCount;
                                 //Tell the tetromino if it was stepped on by another player
                                 Tetromino steppedOnBlock = Game.tetrominos[tetromino_id];
-                                if (steppedOnBlock.owner != null && steppedOnBlock.owner != this)
+                                //Don't add points if they haven't stopped standing on the block
+                                if (steppedOnBlock.owner != null && steppedOnBlock.owner != this && lastGrounded != Time.frameCount-1)
                                     steppedOnBlock.owner.AddRezPoints();
+
+                                TouchGround();
                             }
 
-                            Vector3 tetromino_velocity = (Game.tetrominos[tetromino_id].falling) ? Vector3.down / Game.tickSize : Vector3.zero;
-                            Vector3 relative_velocity = velocity - tetromino_velocity;
-                            float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
-                            if (collisionSpeed > 0.0f) {
-                                velocity += collisionSpeed * normal;
-                            }
+                            //Ignore all other collisions if the player is intangible
+                            if (!intangible) {
+                                Vector3 tetromino_velocity = (Game.tetrominos[tetromino_id].falling) ? Vector3.down / Game.tickSize : Vector3.zero;
+                                Vector3 relative_velocity = velocity - tetromino_velocity;
+                                float collisionSpeed = Vector3.Dot(relative_velocity, -normal);
+                                if (collisionSpeed > 0.0f) {
+                                    velocity += collisionSpeed * normal;
+                                }
 
-                            if (normal == Vector3.zero) {
-                                // player was improperly seperated and must be being crushed
-                                CrushPlayer();
+                                if (normal == Vector3.zero) {
+                                    // player was improperly seperated and must be being crushed
+                                    CrushPlayer();
+                                }
                             }
                         }
                     }
@@ -173,13 +182,20 @@ public class Player : MonoBehaviour {
         if (transform.position.y <= min_y) {
             transform.position += (min_y - transform.position.y) * Vector3.up;
             velocity.y = Mathf.Max(velocity.y, 0.0f);
-            lastGrounded = Time.frameCount;
+            TouchGround();
         }
     }
 
     public void AddRezPoints() {
-        if (++resurrectPoints >= POINTS_TO_REZ)
+        if (!alive && ++resurrectPoints >= POINTS_TO_REZ)
             ResurrectPlayer();
+
+        Debug.Log(resurrectPoints);
+    }
+
+    public void TouchGround() {
+        lastGrounded = Time.frameCount;
+        intangible = false;
     }
 
     private void ResurrectPlayer() {
@@ -188,6 +204,7 @@ public class Player : MonoBehaviour {
 
         GetComponentInChildren<MeshRenderer>().enabled = true;
         alive = true;
+        intangible = true;
 
         Game.PlayerRessurected();
     }
@@ -198,6 +215,8 @@ public class Player : MonoBehaviour {
 
         alive = false;
         resurrectPoints = 0;
+        velocity = Vector3.zero;
+
         Game.PlayerDied();
     }
 
